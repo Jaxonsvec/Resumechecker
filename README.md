@@ -2,6 +2,17 @@
 
 A Flutter-first foundation for an AI-assisted resume feedback app. The app currently has a product home screen only: resume upload, API analysis, results, and OpenAI calls are not implemented yet. The original provider/model decision is OpenAI `gpt-5-mini`; any future provider key must live on a backend, never in the Flutter app.
 
+## Start here
+
+Recommended onboarding order:
+
+1. Read [the project handover](docs/HANDOVER.md) for the current architecture, implementation, decisions, and limitations.
+2. Follow [the setup checklist](docs/SETUP_CHECKLIST.md) to configure your environment.
+3. Review [the development checklist](docs/DEVELOPMENT_CHECKLIST.md) to see verified work and remaining tasks.
+4. Before starting a task, inspect the current code, Git status, branch, and recent commits.
+
+AI coding agents must follow [AGENTS.md](AGENTS.md) and read the handover completely before modifying files, installing dependencies, or beginning implementation.
+
 ## Requirements
 
 - Flutter 3.47.7 stable and Dart 3.13.5 (or a compatible newer stable Flutter release satisfying `pubspec.yaml`). The project-local `.fvmrc` records the recommended version for teams using FVM; FVM is optional and its SDK symlink behavior can require extra Windows setup. The SDK itself is installed separately.
@@ -57,7 +68,7 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 - [Development checklist](docs/DEVELOPMENT_CHECKLIST.md) — feature-by-feature team work plan
 - `.github/workflows/` — Flutter CI
 
-The resume action deliberately reports that upload is not available. Read [the architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), [development handover](docs/DEVELOPMENT.md), [project handover](docs/HANDOVER.md), [teammate setup checklist](docs/SETUP_CHECKLIST.md), and the [development checklist](docs/DEVELOPMENT_CHECKLIST.md) for implemented boundaries, verification, and work still needed. The backend has a health route and an analysis request validator that returns 501; it does not analyze resumes and no AI provider is connected.
+The resume action deliberately reports that upload is not available. The backend has a health route and an analysis request validator that returns 501; it does not analyze resumes and no AI provider is connected. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for additional detail.
 
 ## Backend (optional during Flutter development)
 

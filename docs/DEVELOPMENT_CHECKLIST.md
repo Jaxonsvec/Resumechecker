@@ -1,6 +1,15 @@
 # Airesume — Development Checklist
 
-Use this checklist as the team's source of truth for building the application. Work through tasks in order and check items only when implemented and tested. The setup checklist remains in [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md); project state and developer handover remain in [HANDOVER.md](HANDOVER.md).
+Before taking a task, read the agent guidance in [AGENTS.md](../AGENTS.md), the contributor entry point in [README.md](../README.md), and the current [project handover](HANDOVER.md). Use [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) for machine setup; this file tracks feature work.
+
+Use this checklist as the team's source of truth for building the application. Work through tasks in order and check items only when implemented and tested.
+
+## Current progress
+
+- **Completed:** 1.2, 1.3, 2.2, 4.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
+- **In progress:** None recorded. Do not infer an owner or active task from an unchecked box.
+- **Next:** 1.1 — launch the app on an emulator or device from the repository root. The debug APK was built, but device launch is unverified.
+- **Remaining:** All unchecked items below; see the dependency and acceptance gates near the end of this document.
 
 ## Phase 1: Project Foundation
 
@@ -123,6 +132,15 @@ A task can be checked off only when:
 - Documentation is updated if behavior or setup instructions changed.
 
 Do not mark planned features as completed. If a task is blocked, record the blocker and leave the checkbox unchecked.
+
+## Dependencies and acceptance gates
+
+- **Foundation (Phase 1):** Use the [setup checklist](SETUP_CHECKLIST.md) first. Phase 1.1 is accepted after `flutter run` from the repository root reaches the home screen on an emulator or device. Phase 1.7 requires a teammate to complete a fresh clone/setup/run without relying on this machine's local paths.
+- **Workflow and input (Phases 2–3):** Get team agreement on 2.1 and screen review 2.7. Agree file formats and limits in 3.1 before choosing a picker or accepting files. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
+- **Backend processing (Phase 4):** Finalize 4.1 and the privacy/data decisions in 8.3–8.6 before accepting real resumes. Upload handling, file validation, extraction, unsupported/scanned-document behavior, size limits, errors, and timeouts must be tested independently before integration.
+- **AI analysis (Phase 5):** Confirm criteria and provider/model (5.1–5.2) before implementing prompts or requests. Keep credentials server-side. Define and validate the response schema; use mocked provider responses for routine tests and synthetic resumes for evaluation.
+- **Flutter integration and results (Phases 6–7):** These depend on a stable API request/response contract, working backend analysis, and file input. End-to-end acceptance requires upload progress, response parsing, useful failures/retry, results display, and mocked success/error UI coverage.
+- **Security and release (Phases 8–10):** Resolve privacy and retention decisions before live resume processing. Release acceptance requires passing local checks, Android device/emulator end-to-end verification, a teammate setup run, and an observed GitHub Actions run. Local CI-equivalent commands do not prove that GitHub CI passed.
 
 ## First incomplete task
 
