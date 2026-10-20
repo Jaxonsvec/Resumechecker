@@ -4,11 +4,11 @@ Updated 20 October 2026. This describes the files in the current checkout, not t
 
 ## Purpose and status
 
-Airesume is a Flutter-first mobile app foundation for AI-assisted resume feedback. It is not yet a working resume analyzer. The current user-facing app introduces the intended workflow and clearly says resume upload is unavailable. The backend exposes health and request validation but deliberately returns 501 for valid analysis requests.
+Airesume is a Flutter-first mobile app foundation for AI-assisted resume feedback. It is not yet a working resume analyzer. The current user-facing app introduces the intended workflow and supports local PDF/DOCX selection up to 5 MiB; upload and analysis remain unavailable. The backend exposes health and request validation but deliberately returns 501 for valid analysis requests.
 
 ## Current architecture
 
-- **Flutter app:** The Flutter project lives at the repository root. `lib/main.dart` currently contains the Material 3 app shell, theme, home screen, three-step workflow introduction, and upload-unavailable dialog. This is an early single-file UI foundation; there are not yet separate screen, model, or service modules. `test/widget_test.dart` covers the home copy and dialog.
+- **Flutter app:** The Flutter project lives at the repository root. `lib/main.dart` currently contains the Material 3 app shell, theme, home screen, three-step workflow introduction, and resume input widget. `lib/resume_input.dart` owns the native picker adapter, local document reference, extension/size validation, and selection UI. `test/widget_test.dart` covers home copy, validation, selection, replacement, removal, cancellation, errors, and disposal.
 - **Android:** `android/` is the generated Android host project. The current application ID is still `com.example.airesume`. `android/local.properties` is local machine configuration and is ignored.
 - **Backend:** `backend/` is an Express 5 API using Zod 4 schemas. `src/server.js` validates `PORT` (default 3000, range 1–65535); `npm start` uses Node 22.9+'s `--env-file-if-exists` option to load an optional local `.env`. `GET /health` returns `{"status":"ok"}`. `POST /api/v1/analyses` accepts JSON with `resumeText` (1–100,000 trimmed characters) and optional `targetRole` (up to 200 characters); valid requests return HTTP 501. It does not analyze, retain, extract, or upload a resume. JSON request size is limited to 300 KB and errors use a shared JSON structure. No application-specific analysis timeout is configured.
 - **Provider:** The initial decision remains OpenAI `gpt-5-mini`. `backend/src/providers/resume_analyzer.js` only documents the future interface. There is no OpenAI SDK, API call, provider key validation, or AI result today. `backend/.env.example` contains placeholder values only; `OPENAI_API_KEY` is currently unused. Never place a provider key in Flutter or commit a real `.env`.
@@ -36,7 +36,7 @@ More detail: [architecture](ARCHITECTURE.md), [API contract](API.md), [developme
 
 ## Incomplete features
 
-- Resume file picker, upload, parsing/extraction, progress, retry/error states, and results screen.
+- Resume upload, parsing/extraction, analysis progress, network retry/error states, and results screen. Native picker device verification is outstanding.
 - Resume scoring, recommendations, and history are not implemented.
 - Authentication, API URL configuration in Flutter, and a production API contract for document uploads.
 - Data retention/deletion policy and supported document limits.
@@ -94,7 +94,7 @@ An initial test attempt exposed issues in the new tests and was corrected before
 
 ## Known issues and limitations
 
-- The UI intentionally does not select a file or start analysis. The backend's 501 route is validation-only.
+- The UI selects a local file but does not upload it or start analysis. The backend's 501 route is validation-only.
 - The documented three-step flow is a concept shown on the home screen, not an implemented end-to-end workflow.
 - The Android application ID is still Flutter's generated example ID.
 - `flutter doctor -v`, `flutter run` on an emulator/device, and GitHub Actions have not been verified in the recorded setup checks.
@@ -112,3 +112,12 @@ An initial test attempt exposed issues in the new tests and was corrected before
 ## Keeping the handover current
 
 When architecture, verified functionality, environment requirements, test results, or the next recommended task changes, update this document and the matching development checklist. Keep `SETUP_CHECKLIST.md` focused on machine setup and running the project. Mark roadmap items complete only after implementation and relevant verification; record CI status separately from local checks.
+
+## Local file selection update — 20 October 2026
+
+Added `file_picker` 13.1.0, PDF/DOCX extension and positive size validation (maximum 5 MiB), selected filename/type/size, replace/remove, cancellation preservation, busy state, and safe access failures. Selection is held only in widget memory. No content inspection, upload, extraction, persistence, or provider calls were added. Native pickers may cache documents locally; removing the selection only clears the app reference. These initial local limits can be revised by the team before upload integration.
+
+Verification results for this update are recorded below; prior foundation results above are historical. Branch creation was blocked by read-only Git metadata, so changes remain uncommitted on `main`.
+
+- Passed: offline `flutter pub get`, Dart format check (3 files), `flutter analyze` (no issues), and `git diff --check`. Flutter ran from a writable temporary SDK copy with analytics suppressed.
+- Blocked: `flutter test` could not bind its loopback server (OS permission denied); no tests executed. `flutter build apk --debug` could not write the Gradle wrapper cache lock. Android native picker/device behavior and GitHub CI remain unverified. Backend was unchanged and its tests were not rerun.

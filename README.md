@@ -1,6 +1,6 @@
 # Airesume
 
-A Flutter-first foundation for an AI-assisted resume feedback app. The app currently has a product home screen only: resume upload, API analysis, results, and OpenAI calls are not implemented yet. The original provider/model decision is OpenAI `gpt-5-mini`; any future provider key must live on a backend, never in the Flutter app.
+A Flutter-first foundation for an AI-assisted resume feedback app. The app supports local resume selection (PDF/DOCX up to 5 MiB), file details, replacement, and removal. Resume upload, API analysis, results, and OpenAI calls are not implemented yet. The original provider/model decision is OpenAI `gpt-5-mini`; any future provider key must live on a backend, never in the Flutter app.
 
 ## Start here
 
@@ -68,7 +68,7 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 - [Development checklist](docs/DEVELOPMENT_CHECKLIST.md) — feature-by-feature team work plan
 - `.github/workflows/` — Flutter CI
 
-The resume action deliberately reports that upload is not available. The backend has a health route and an analysis request validator that returns 501; it does not analyze resumes and no AI provider is connected. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for additional detail.
+The resume action opens the native file picker. Selection is local to the current session; nothing is sent to the backend. The backend has a health route and an analysis request validator that returns 501; it does not analyze resumes and no AI provider is connected. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for additional detail.
 
 ## Backend (optional during Flutter development)
 

@@ -40,13 +40,13 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 - [ ] The backend uses `PORT` (default `3000`). To use another port in PowerShell, set `$env:PORT = "3001"` before starting it.
 - [ ] `backend/.env.example` contains placeholder values. For future local provider work, copy it with `Copy-Item .env.example .env` inside `backend/`; replace placeholders only when authorized to use a real backend key.
 - [ ] Never put an OpenAI key in Flutter, `--dart-define`, source control, issue comments, or logs. The placeholder key is not used by the current server.
-- [ ] Do not use real resumes in tests or send any resume to a live provider. No upload or analysis feature is implemented yet.
+- [ ] Do not use real resumes in tests or send any resume to a live provider. Selection is local only; no upload or analysis feature is implemented yet.
 
 ## 5. Run the app and optional API
 
 - [ ] From the repository root, run `flutter run` and select the running emulator/device. You can target a device with `flutter run -d <device-id>`.
 - [ ] Confirm the Airesume home screen and workflow summary appear.
-- [ ] Tap **Choose a resume** and confirm the app explains that upload is not implemented. This is the expected current behavior.
+- [ ] Tap **Choose a resume**, select a synthetic PDF/DOCX up to 5 MiB, and verify its name and size. Test replacement, removal, cancellation, and picker access failures. Upload and analysis remain unavailable.
 - [ ] Optional: from `backend/`, run `npm start`; verify `http://localhost:3000/health` returns `{"status":"ok"}`.
 - [ ] Optional: send valid JSON to `/api/v1/analyses` and confirm it returns HTTP 501. This route validates request shape but does not analyze or store resume text.
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'resume_input.dart';
+
 void main() {
   runApp(const AiresumeApp());
 }
@@ -100,49 +102,11 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 const _WorkflowCard(),
                 const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => _showUnavailable(context),
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: const Text('Choose a resume'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    backgroundColor: const Color(0xFF1F766A),
-                    foregroundColor: Colors.white,
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'PDF or DOCX · Your resume is personal. It will only be sent after secure upload is implemented.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF687572),
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
-                ),
+                const ResumeInput(),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showUnavailable(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Resume upload is coming next'),
-        content: const Text(
-          'This project foundation does not upload or analyze files yet. A secure backend is needed before resumes can be handled.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
-          ),
-        ],
       ),
     );
   }

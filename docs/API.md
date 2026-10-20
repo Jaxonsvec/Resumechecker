@@ -19,3 +19,7 @@ A production upload request format is intentionally undecided until the team sel
 Proposed successful response: an analysis id, concise overall feedback, and categorized suggestions with evidence from the supplied resume. Proposed errors use a stable JSON shape with a machine-readable code, safe message, and optional field errors. Authentication, maximum file size, PDF/DOCX extraction limits, timeout behavior, and deletion guarantees still need team decisions.
 
 The current placeholder accepts resume text for schema validation only and returns 501 for valid requests. No file upload or real AI output is currently returned.
+
+## Local selection policy
+
+Flutter currently selects PDF/DOCX files up to 5 MiB (5,242,880 bytes), rejecting empty files and unsupported filename extensions. This is a local input policy, not an upload contract or content authenticity check. No API request is made. Server format validation, extraction limits, authentication, and retention remain undecided.

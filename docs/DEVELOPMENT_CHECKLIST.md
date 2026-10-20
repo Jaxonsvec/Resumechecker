@@ -7,7 +7,7 @@ Use this checklist as the team's source of truth for building the application. W
 ## Current progress
 
 - **Completed:** 1.2, 1.3, 2.2, 4.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
-- **In progress:** None recorded. Do not infer an owner or active task from an unchecked box.
+- **In progress:** 3.1–3.7 — local PDF/DOCX selection (5 MiB), details, validation, replace/remove, cancellation and access errors are implemented with tests added. Analyze/format pass; test execution is blocked by sandbox loopback restrictions and Android build by Gradle cache permissions. Keep items unchecked until tests pass and the native picker is verified.
 - **Next:** 1.1 — launch the app on an emulator or device from the repository root. The debug APK was built, but device launch is unverified.
 - **Remaining:** All unchecked items below; see the dependency and acceptance gates near the end of this document.
 

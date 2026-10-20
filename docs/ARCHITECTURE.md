@@ -5,7 +5,7 @@ Airesume is a Flutter application at the repository root. The Android app is the
 ## Current implementation
 
 - The home screen introduces the planned three-step workflow.
-- The resume action explains that upload is not implemented yet. No file is read, uploaded, or analyzed.
+- The resume action uses `file_picker` through `lib/resume_input.dart`. It accepts a single PDF/DOCX by filename extension, with a positive reported size up to 5 MiB. It retains a platform file reference in widget state for this session and displays name/type/size, replacement, removal, and safe access errors. Cancellation or failed replacement keeps the prior selection. No document contents are read by app code, uploaded, parsed, or analyzed. Native providers may create local temporary copies; removing a selection clears the app reference, not the original document or provider cache. File signatures and server validation remain future work.
 - The backend offers a health check and validates a placeholder analysis request. Valid analysis requests return HTTP 501; no resume is stored or processed. Provider integration is future work.
 - OpenAI `gpt-5-mini` remains the initial provider/model decision from the project brief. It is not currently called.
 
