@@ -22,7 +22,7 @@ The Flutter app currently has no environment variables and does not connect to a
 
 ### Incomplete / next decisions
 
-- Implement a native PDF/DOCX picker and accessible upload progress, empty, failure, and result screens.
+- Implement document extraction, connection to shared local checks, and upload/progress states. Native PDF/DOCX selection already supports filename/size, validation, replace/remove, cancellation, and errors.
 - Decide authentication, upload size/retention/deletion, supported formats, and text extraction library.
 - Build the secure backend and OpenAI provider adapter for `gpt-5-mini`; validate output and mock provider calls in tests.
 - Configure an Android application ID and test on an emulator or device.
