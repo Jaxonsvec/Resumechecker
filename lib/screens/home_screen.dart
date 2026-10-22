@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
               applicationVersion: 'Project foundation',
               children: const [
                 Text(
-                  'Resume analysis will be available when the secure API is connected.',
+                  'Airesume sends selected resume text to the configured backend and AI service to prepare feedback.',
                 ),
               ],
             ),
@@ -69,11 +69,11 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.explore_outlined),
-                  label: const Text('Preview the workflow'),
+                  label: const Text('Choose a resume'),
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Prototype preview only. Resume upload and analysis are not implemented yet.',
+                  'Choose a PDF or DOCX file to get feedback from the configured analysis service.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF687572),

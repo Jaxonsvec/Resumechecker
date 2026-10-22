@@ -2,12 +2,33 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createServer } from 'node:http';
 import { createApp } from '../src/app.js';
+import { ResumeFileError } from '../src/resume_text.js';
 
 let server;
 let baseUrl;
+let seenInput;
+const expectedAnalysis = {
+  summary: 'Clear, concise resume with relevant experience.',
+  strengths: [{ title: 'Relevant experience', evidence: 'Led a team of four.' }],
+  improvements: [{
+    title: 'Add measurable impact',
+    evidence: 'The role description has no outcome metrics.',
+    recommendation: 'Add a truthful result or scale where available.',
+  }],
+  missing_information: ['Education details'],
+};
 
 before(async () => {
-  server = createServer(createApp());
+  const app = createApp({
+    textExtractor: async () => 'Synthetic resume text. Led a team of four.',
+    analyzer: {
+      async analyze(input) {
+        seenInput = input;
+        return expectedAnalysis;
+      },
+    },
+  });
+  server = createServer(app);
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
@@ -18,38 +39,90 @@ after(async () => {
   );
 });
 
+function uploadForm({ filename = 'resume.pdf', bytes = '%PDF-test', targetRole } = {}) {
+  const form = new FormData();
+  form.append('resume', new Blob([bytes], { type: 'application/octet-stream' }), filename);
+  if (targetRole !== undefined) form.append('targetRole', targetRole);
+  return form;
+}
+
 test('health returns the validated service status', async () => {
   const response = await fetch(`${baseUrl}/health`);
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { status: 'ok' });
 });
 
-test('analysis route clearly reports the unimplemented feature', async () => {
+test('analysis uploads a resume, passes extracted text to the analyzer, and validates output', async () => {
   const response = await fetch(`${baseUrl}/api/v1/analyses`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ resumeText: 'Resume text', targetRole: 'Engineer' }),
+    body: uploadForm({ targetRole: 'Product engineer' }),
   });
-  assert.equal(response.status, 501);
-  assert.deepEqual(await response.json(), {
-    error: {
-      code: 'ANALYSIS_NOT_IMPLEMENTED',
-      message: 'Resume analysis is not available yet.',
-    },
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { analysis: expectedAnalysis });
+  assert.deepEqual(seenInput, {
+    resumeText: 'Synthetic resume text. Led a team of four.',
+    targetRole: 'Product engineer',
   });
 });
 
-test('analysis request schema rejects empty and unexpected fields', async () => {
+test('analysis requires a resume and rejects unsupported extensions', async () => {
+  const missing = await fetch(`${baseUrl}/api/v1/analyses`, { method: 'POST', body: new FormData() });
+  assert.equal(missing.status, 400);
+  assert.equal((await missing.json()).error.code, 'INVALID_REQUEST');
+
+  const unsupported = await fetch(`${baseUrl}/api/v1/analyses`, {
+    method: 'POST',
+    body: uploadForm({ filename: 'resume.txt' }),
+  });
+  assert.equal(unsupported.status, 415);
+  assert.equal((await unsupported.json()).error.code, 'UNSUPPORTED_FILE_TYPE');
+});
+
+test('analysis rejects uploads larger than 10 MiB', async () => {
   const response = await fetch(`${baseUrl}/api/v1/analyses`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ resumeText: '  ', apiKey: 'must-not-be-accepted' }),
+    body: uploadForm({ bytes: Buffer.alloc(10 * 1024 * 1024 + 1) }),
   });
-  assert.equal(response.status, 400);
-  const body = await response.json();
-  assert.equal(body.error.code, 'INVALID_REQUEST');
-  assert.ok(body.error.fields.resumeText);
-  assert.ok(body.error.fields.body);
+  assert.equal(response.status, 413);
+  assert.equal((await response.json()).error.code, 'FILE_TOO_LARGE');
+});
+
+test('analysis protects provider and text extraction errors with stable responses', async () => {
+  const missingProvider = createServer(createApp({
+    textExtractor: async () => 'Synthetic resume.',
+    analyzer: { async analyze() { const error = new Error(); error.code = 'PROVIDER_NOT_CONFIGURED'; throw error; } },
+  }));
+  await new Promise((resolve) => missingProvider.listen(0, '127.0.0.1', resolve));
+  const unavailable = await fetch(`http://127.0.0.1:${missingProvider.address().port}/api/v1/analyses`, {
+    method: 'POST', body: uploadForm(),
+  });
+  assert.equal(unavailable.status, 503);
+  assert.equal((await unavailable.json()).error.code, 'ANALYSIS_UNAVAILABLE');
+  await new Promise((resolve) => missingProvider.close(resolve));
+
+  const badDocumentApp = createServer(createApp({
+    textExtractor: async () => { throw new ResumeFileError('NO_EXTRACTABLE_TEXT', 'No text could be extracted.'); },
+    analyzer: { async analyze() { assert.fail('Analyzer must not receive empty document text.'); } },
+  }));
+  await new Promise((resolve) => badDocumentApp.listen(0, '127.0.0.1', resolve));
+  const unreadable = await fetch(`http://127.0.0.1:${badDocumentApp.address().port}/api/v1/analyses`, {
+    method: 'POST', body: uploadForm(),
+  });
+  assert.equal(unreadable.status, 422);
+  assert.equal((await unreadable.json()).error.code, 'NO_EXTRACTABLE_TEXT');
+  await new Promise((resolve) => badDocumentApp.close(resolve));
+
+  const invalidResultApp = createServer(createApp({
+    textExtractor: async () => 'Synthetic resume.',
+    analyzer: { async analyze() { return { summary: 'Incomplete result' }; } },
+  }));
+  await new Promise((resolve) => invalidResultApp.listen(0, '127.0.0.1', resolve));
+  const invalidResult = await fetch(`http://127.0.0.1:${invalidResultApp.address().port}/api/v1/analyses`, {
+    method: 'POST', body: uploadForm(),
+  });
+  assert.equal(invalidResult.status, 502);
+  assert.equal((await invalidResult.json()).error.code, 'INVALID_ANALYSIS_RESPONSE');
+  await new Promise((resolve) => invalidResultApp.close(resolve));
 });
 
 test('malformed JSON and unknown routes use the shared error shape', async () => {
@@ -64,4 +137,25 @@ test('malformed JSON and unknown routes use the shared error shape', async () =>
   const unknown = await fetch(`${baseUrl}/missing`);
   assert.equal(unknown.status, 404);
   assert.equal((await unknown.json()).error.code, 'NOT_FOUND');
+});
+
+test('CORS preflight is limited to configured development origins', async () => {
+  const corsServer = createServer(createApp({ allowedOrigins: ['http://localhost:5000'] }));
+  await new Promise((resolve) => corsServer.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${corsServer.address().port}/api/v1/analyses`;
+
+  const allowed = await fetch(url, {
+    method: 'OPTIONS',
+    headers: { origin: 'http://localhost:5000' },
+  });
+  assert.equal(allowed.status, 204);
+  assert.equal(allowed.headers.get('access-control-allow-origin'), 'http://localhost:5000');
+
+  const denied = await fetch(url, {
+    method: 'OPTIONS',
+    headers: { origin: 'https://unapproved.example' },
+  });
+  assert.equal(denied.status, 404);
+  assert.equal(denied.headers.get('access-control-allow-origin'), null);
+  await new Promise((resolve) => corsServer.close(resolve));
 });

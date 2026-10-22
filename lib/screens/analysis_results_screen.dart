@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../models/resume_analysis.dart';
 import '../theme/app_theme.dart';
 import '../widgets/workflow_components.dart';
 
 class AnalysisResultsScreen extends StatelessWidget {
-  const AnalysisResultsScreen({super.key});
+  const AnalysisResultsScreen({
+    super.key,
+    required this.result,
+    required this.resumeName,
+  });
+
+  final ResumeAnalysis result;
+  final String resumeName;
 
   @override
   Widget build(BuildContext context) {
@@ -17,40 +25,77 @@ class AnalysisResultsScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                const PrototypeBanner(),
-                const SizedBox(height: 24),
                 const WorkflowStepHeader(step: 3, label: 'Your feedback'),
                 const SizedBox(height: 24),
                 Text(
                   'A clear view of your next steps',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  'The proposed results layout groups feedback into a summary, strengths, and suggested improvements. The team still needs to agree on scoring and analysis criteria.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  'Based on $resumeName',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 20),
-                const _ResultSection(
+                _ResultSection(
                   icon: Icons.summarize_outlined,
                   title: 'Overall feedback',
-                  body: 'A concise summary based on the agreed review criteria will appear here.',
+                  body: result.summary,
                 ),
                 const SizedBox(height: 12),
-                const _ResultSection(
+                _ResultSection(
                   icon: Icons.thumb_up_alt_outlined,
                   title: 'Strengths',
-                  body: 'Specific strengths, with evidence from the resume, will appear here.',
+                  body: result.strengths.isEmpty
+                      ? 'No specific strengths were identified from the available resume text.'
+                      : null,
+                  children: [
+                    for (final strength in result.strengths)
+                      _EvidenceItem(
+                        title: strength.title,
+                        evidence: strength.evidence,
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                const _ResultSection(
+                _ResultSection(
                   icon: Icons.lightbulb_outline,
                   title: 'Ways to improve',
-                  body: 'Prioritized, actionable suggestions will appear here.',
+                  body: result.improvements.isEmpty
+                      ? 'No specific improvements were identified from the available resume text.'
+                      : null,
+                  children: [
+                    for (final improvement in result.improvements)
+                      _EvidenceItem(
+                        title: improvement.title,
+                        evidence: improvement.evidence,
+                        recommendation: improvement.recommendation,
+                      ),
+                  ],
                 ),
+                if (result.missingInformation.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _ResultSection(
+                    icon: Icons.find_in_page_outlined,
+                    title: 'Details to consider adding',
+                    children: [
+                      for (final item in result.missingInformation)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('•  '),
+                              Expanded(child: Text(item)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
                 const Text(
-                  'Placeholder content only · no resume was analyzed',
+                  'Suggestions are based only on the text extracted from your resume. Review them for accuracy before making changes.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
@@ -59,7 +104,7 @@ class AnalysisResultsScreen extends StatelessWidget {
                   onPressed: () =>
                       Navigator.of(context).popUntil((route) => route.isFirst),
                   icon: const Icon(Icons.replay_outlined),
-                  label: const Text('Return to home'),
+                  label: const Text('Analyze another resume'),
                 ),
               ],
             ),
@@ -74,12 +119,14 @@ class _ResultSection extends StatelessWidget {
   const _ResultSection({
     required this.icon,
     required this.title,
-    required this.body,
+    this.body,
+    this.children = const [],
   });
 
   final IconData icon;
   final String title;
-  final String body;
+  final String? body;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -95,13 +142,45 @@ class _ResultSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 6),
-                Text(body, style: Theme.of(context).textTheme.bodyMedium),
+                if (body case final text?) ...[
+                  const SizedBox(height: 6),
+                  Text(text, style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                ...children,
               ],
             ),
           ),
         ],
       ),
+    ),
+  );
+}
+
+class _EvidenceItem extends StatelessWidget {
+  const _EvidenceItem({
+    required this.title,
+    required this.evidence,
+    this.recommendation,
+  });
+
+  final String title;
+  final String evidence;
+  final String? recommendation;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text('From your resume: $evidence'),
+        if (recommendation case final value?) ...[
+          const SizedBox(height: 4),
+          Text('Suggestion: $value'),
+        ],
+      ],
     ),
   );
 }

@@ -1,20 +1,21 @@
 # Architecture
 
-Airesume is a Flutter application at the repository root. The Android app is the first target. `lib/` owns presentation and will call an API service once the API contract and upload flow are implemented. Provider credentials must remain in the backend; they must never be included in the Flutter bundle.
+Airesume is a Flutter application at the repository root. The Android app is the first target. Provider credentials remain in the backend; they must never be included in the Flutter bundle.
 
 ## Current implementation
 
-- The home screen introduces the planned three-step workflow and links to the UX prototype.
-- The prototype contains resume-selection, illustrative analysis-progress, results-layout, unsupported-file, and connection-retry screens. It explicitly labels previews and does not read, upload, or analyze a file.
-- The backend offers a health check and validates a placeholder analysis request. Valid analysis requests return HTTP 501; no resume is stored or processed. Provider integration is future work.
-- OpenAI `gpt-5-mini` remains the initial provider/model decision from the project brief. It is not currently called.
+- Flutter supports PDF/DOCX selection up to 10 MiB and displays file metadata. After an explicit processing acknowledgment, the app reads the selected file, uploads it with optional target role through a reusable multipart HTTP client, shows progress/retry states, validates the JSON response, and renders actual feedback sections. The HTTP client and UI are covered with mocked tests.
+- The Express backend accepts a PDF/DOCX multipart upload at `POST /api/v1/analyses`, checks the file signature and size, extracts text in memory, and calls an injectable analyzer. The default analyzer sends the extracted text to OpenAI using a structured response schema. Uploads and extracted text are not stored by the application.
+- The analysis response contains a summary, evidence-backed strengths and improvements, and missing-information notes. It intentionally contains no numeric score. The server prompt directs the model not to invent facts or infer protected traits.
+- Automated tests use fake extraction/analyzer implementations and never make live provider requests. Dependencies and the refreshed lockfile still need successful installation/verification in an environment with npm registry access.
+- Real app-to-server integration has not been exercised against a clean backend install, Android emulator/device, or live provider. The backend lockfile is stale pending npm registry access.
 
-## Draft flow (not yet approved by the team)
+## End-to-end flow
 
-1. The user chooses a resume and may provide a target role. Supported formats and limits need team agreement.
-2. The app confirms the selection, then shows progress while the API validates and processes the document.
-3. Results group an overall summary, strengths, and prioritized improvements. Scoring criteria and any numeric score need team agreement.
-4. If the file is unsupported, explain what the user can do next. If the service fails, preserve the selection and offer retry.
-5. The backend handles document processing and any provider request; credentials remain server-side. Retention and deletion need team agreement before implementation.
+1. Flutter selects a PDF or DOCX resume up to 10 MiB, may provide a target role, and requires acknowledgment that resume text will go to the configured AI service.
+2. The app uploads the file through its reusable multipart API client and displays progress while the request runs.
+3. The API accepts one file in memory, checks the extension and magic bytes, and extracts text. Scanned PDFs without an embedded text layer return `NO_EXTRACTABLE_TEXT`; OCR is not implemented.
+4. The backend submits extracted text and optional target role to the configured OpenAI model and validates the structured response before returning it.
+5. Flutter parses and displays summary, strengths, improvements, and missing-information notes. On failure it shows a safe message and allows retry. Provider credentials and raw provider errors are not sent to the client.
 
-This is a UX proposal represented by design previews, not an accepted product workflow or functional feature. Before implementation, the group should decide retention/deletion behavior, supported formats and limits, authentication, target-role behavior, and whether uploads are stored or processed in memory.
+This provides a backend analysis path with sensible default criteria and an in-app acknowledgment before upload. Authentication, retention/deletion policy, production deployment controls, and legal/privacy review remain necessary before processing real resumes in a deployed service. `store: false` is sent to OpenAI, but this is not a substitute for reviewing current provider terms and project privacy requirements.

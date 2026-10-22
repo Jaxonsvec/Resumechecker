@@ -29,7 +29,7 @@ class WorkflowIssuesScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     child: FeedbackState.error(
                       title: 'This file type is not supported',
-                      message: 'The accepted file formats and size limit will be confirmed before file selection is implemented.',
+                      message: 'Choose a PDF or DOCX file up to 10 MiB.',
                       actionLabel: 'Choose another file',
                       onAction: () => _showPreviewMessage(
                         context,
@@ -55,7 +55,7 @@ class WorkflowIssuesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'These are proposed messages. No file validation or network request is running.',
+                  'These are proposed messages. File type and size are checked during local selection; network retry is not connected.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
