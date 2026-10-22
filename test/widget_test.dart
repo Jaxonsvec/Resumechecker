@@ -1,117 +1,89 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:airesume/main.dart';
-import 'package:airesume/resume_input.dart';
 
 void main() {
-  test('validates extensions and size boundaries', () {
-    for (final name in ['resume.pdf', 'resume.DOCX']) {
-      expect(
-        ResumeFile(name: name, size: maxResumeBytes).validationError,
-        isNull,
-      );
-    }
-    for (final file in [
-      const ResumeFile(name: 'resume.txt', size: 100),
-      const ResumeFile(name: 'pdf', size: 100),
-      const ResumeFile(name: 'resume.pdf', size: 0),
-      const ResumeFile(name: 'resume.pdf', size: -1),
-      const ResumeFile(name: 'resume.docx', size: maxResumeBytes + 1),
-    ]) {
-      expect(file.validationError, isNotNull);
-    }
-  });
-
-  testWidgets('home shows resume entry and local-only explanation', (
-    tester,
-  ) async {
+  testWidgets('home opens the pasted resume input screen', (tester) async {
     await tester.pumpWidget(const AiresumeApp());
-    expect(find.text('Add your resume'), findsOneWidget);
+
+    expect(find.text('Make your next move\nwith confidence.'), findsOneWidget);
+    expect(find.text('Paste resume'), findsOneWidget);
+    expect(find.text('Tell us about your next role'), findsOneWidget);
+    expect(find.text('Review basic checks'), findsOneWidget);
     await tester.dragUntilVisible(
-      find.text('Choose a resume'),
+      find.text('Paste resume'),
       find.byType(ListView),
       const Offset(0, -300),
     );
+    expect(find.text('Paste resume'), findsOneWidget);
+
+    await tester.tap(find.text('Paste resume'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Paste resume'), findsNWidgets(2));
+  });
+
+  testWidgets('resume input validates empty text and loads a sample', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: ResumeInputScreen()));
+
+    await tester.dragUntilVisible(
+      find.text('Check resume'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.tap(find.text('Check resume'));
+    await tester.pump();
+    expect(find.text('Enter resume text to continue.'), findsOneWidget);
+
+    await tester.tap(find.text('Load sample resume'));
+    await tester.pump();
+    expect(find.text('Software Engineer'), findsOneWidget);
+    expect(find.textContaining('Jordan Lee'), findsOneWidget);
+
+    await tester.dragUntilVisible(
+      find.text('Check resume'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.tap(find.text('Check resume'));
+    await tester.pumpAndSettle();
+    expect(find.text('Results'), findsOneWidget);
+    expect(find.text('Basic resume checks'), findsOneWidget);
+    expect(find.textContaining('basic rule-based checks'), findsOneWidget);
+    expect(find.text('Edit resume'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.text('Quantified experience'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    expect(find.text('Quantified experience'), findsOneWidget);
+  });
+
+  testWidgets('upload entry opens local file selection', (tester) async {
+    await tester.pumpWidget(const AiresumeApp());
+    await tester.dragUntilVisible(
+      find.text('Upload resume'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+
+    await tester.tap(find.text('Upload resume'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Upload resume'), findsOneWidget);
+    expect(find.text('Choose a resume file'), findsOneWidget);
+    expect(find.text('Choose file'), findsOneWidget);
     expect(
-      find.textContaining('Upload and analysis are not available'),
+      find.textContaining('Files are selected locally and are not uploaded.'),
       findsOneWidget,
     );
-  });
+    expect(find.text('Paste resume'), findsNothing);
 
-  testWidgets('select, cancel, reject, retry, replace and remove', (
-    tester,
-  ) async {
-    ResumeFile? next = const ResumeFile(name: 'first.pdf', size: 1024);
-    var fail = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ResumeInput(
-            picker: () async {
-              if (fail) throw StateError('private error');
-              return next;
-            },
-          ),
-        ),
-      ),
-    );
-    Future<void> choose(String label) async {
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-    }
-
-    await choose('Choose a resume');
-    expect(find.text('first.pdf'), findsOneWidget);
-    expect(find.text('PDF · 1.0 KiB'), findsOneWidget);
-    next = null;
-    await choose('Replace resume');
-    expect(find.text('first.pdf'), findsOneWidget);
-    next = const ResumeFile(name: 'invalid.exe', size: 10);
-    await choose('Replace resume');
-    expect(find.text('Choose a PDF or DOCX file.'), findsOneWidget);
-    expect(find.text('first.pdf'), findsOneWidget);
-    fail = true;
-    await choose('Replace resume');
-    expect(find.textContaining('Could not access'), findsOneWidget);
-    expect(find.textContaining('private error'), findsNothing);
-    fail = false;
-    next = const ResumeFile(name: 'replacement.docx', size: 2048);
-    await choose('Replace resume');
-    expect(find.text('replacement.docx'), findsOneWidget);
-    expect(find.text('first.pdf'), findsNothing);
-    await choose('Remove resume');
-    expect(find.text('replacement.docx'), findsNothing);
-    expect(find.text('Choose a resume'), findsOneWidget);
-  });
-
-  testWidgets('prevents duplicate picks and tolerates disposal', (
-    tester,
-  ) async {
-    final pending = Completer<ResumeFile?>();
-    var calls = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ResumeInput(
-          picker: () {
-            calls++;
-            return pending.future;
-          },
-        ),
-      ),
-    );
-    await tester.tap(find.text('Choose a resume'));
-    await tester.pump();
-    expect(find.text('Opening files…'), findsOneWidget);
-    expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
-      isNull,
-    );
-    expect(calls, 1);
-    await tester.pumpWidget(const SizedBox());
-    pending.complete(const ResumeFile(name: 'resume.pdf', size: 1));
-    await tester.pump();
-    expect(tester.takeException(), isNull);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Paste resume'), findsNWidgets(2));
   });
 }

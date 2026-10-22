@@ -1,14 +1,15 @@
 # Airesume project handover
 
-Updated 20 October 2026. This describes the files in the current checkout, not the intended future product.
+Updated 22 October 2026. This describes the files in the current checkout, not the intended future product.
 
 ## Purpose and status
 
-Airesume is a Flutter-first mobile app foundation for AI-assisted resume feedback. It is not yet a working resume analyzer. The current user-facing app introduces the intended workflow and supports local PDF/DOCX selection up to 5 MiB; upload and analysis remain unavailable. The backend exposes health and request validation but deliberately returns 501 for valid analysis requests.
+Airesume is a Flutter-first mobile app foundation for AI-assisted resume feedback. The current app supports pasted resume text through local, rule-based checks and a feedback screen. Pasted text is a permanent input method; planned file upload is a second input method that should feed the same checker and results flow. Server-side AI analysis is not implemented. Local PDF/DOCX selection and basic extension/size validation are implemented. Document extraction and connecting extracted text to the existing analysis flow are the next planned steps. The backend exposes health and request validation but deliberately returns 501 for valid analysis requests.
 
 ## Current architecture
 
-- **Flutter app:** The Flutter project lives at the repository root. `lib/main.dart` currently contains the Material 3 app shell, theme, home screen, three-step workflow introduction, and resume input widget. `lib/resume_input.dart` owns the native picker adapter, local document reference, extension/size validation, and selection UI. `test/widget_test.dart` covers home copy, validation, selection, replacement, removal, cancellation, errors, and disposal.
+- **Flutter app:** The Flutter project lives at the repository root. `lib/main.dart` contains the Material 3 app shell, theme, two input entry points, pasted-text input form, and navigation into the feedback screen. Paste resume is working; Upload resume opens `lib/resume_upload_screen.dart`, with native selection provided by `lib/resume_file_picker.dart` through Flutter's `file_selector`. It displays filename/size, supports replace/remove, and handles cancellation, invalid selections, and access errors. It does not extract text or run file-based checks. `lib/resume_checker.dart` accepts plain resume text independently of input widgets and returns a reusable `ResumeFeedback` model. `lib/resume_results_screen.dart` renders the same model that future PDF/DOCX extraction should use. `test/widget_test.dart` covers both input entry points and the feedback flow; `test/resume_checker_test.dart` covers passing and failing local checks.
+- **Scrolling:** `lib/app_scroll_behavior.dart` removes the overscroll indicator through `MaterialApp.scrollBehavior`, preventing Android Material 3 text/content stretching at list edges while preserving platform physics and desktop scrollbars.
 - **Android:** `android/` is the generated Android host project. The current application ID is still `com.example.airesume`. `android/local.properties` is local machine configuration and is ignored.
 - **Backend:** `backend/` is an Express 5 API using Zod 4 schemas. `src/server.js` validates `PORT` (default 3000, range 1–65535); `npm start` uses Node 22.9+'s `--env-file-if-exists` option to load an optional local `.env`. `GET /health` returns `{"status":"ok"}`. `POST /api/v1/analyses` accepts JSON with `resumeText` (1–100,000 trimmed characters) and optional `targetRole` (up to 200 characters); valid requests return HTTP 501. It does not analyze, retain, extract, or upload a resume. JSON request size is limited to 300 KB and errors use a shared JSON structure. No application-specific analysis timeout is configured.
 - **Provider:** The initial decision remains OpenAI `gpt-5-mini`. `backend/src/providers/resume_analyzer.js` only documents the future interface. There is no OpenAI SDK, API call, provider key validation, or AI result today. `backend/.env.example` contains placeholder values only; `OPENAI_API_KEY` is currently unused. Never place a provider key in Flutter or commit a real `.env`.
@@ -29,20 +30,40 @@ More detail: [architecture](ARCHITECTURE.md), [API contract](API.md), [developme
 
 - Retained the root Flutter scaffold and replaced the counter demo with the Airesume foundation screen.
 - Documented and pinned the recommended Flutter 3.47.7 / Dart 3.13.5 toolchain in `pubspec.yaml` and `.fvmrc`.
-- Added a widget test for the initial screen and upload-unavailable state.
+- Added widget tests for the initial screen and both resume input entry points.
 - Added an Express/Zod backend foundation with health, request validation, consistent errors, size limit, and API tests.
 - Added Flutter and backend CI jobs, architecture/API documentation, environment guidance, this handover, and a teammate checklist.
 - The existing Git repository and history are intact. Check the live status, branch, and recent commits before working; this handover is not a substitute for Git inspection.
+- Added the working text-input workflow: pasted resume text, optional target role, sample resume convenience action, local rule-based checks, editable input, and a reusable results screen.
+- Added the visible Upload resume entry point, later replaced by local native PDF/DOCX selection with filename/size, replace/remove, non-destructive cancellation, validation, and paste-text fallback.
+- Verified that the checker accepts plain text independently of the input widgets and that the widget flow responds to the supplied resume content.
+- Removed overscroll stretching across the app; Android home top/bottom drag regression tests also verify normal scrolling, and a Windows test verifies the scrollbar remains.
 
 ## Incomplete features
 
-- Resume upload, parsing/extraction, analysis progress, network retry/error states, and results screen. Native picker device verification is outstanding.
-- Resume scoring, recommendations, and history are not implemented.
+- File upload, parsing/extraction, upload progress, and connecting files to checks are not implemented. The local picker has cancellation, validation, and retry/error states, but does not verify document integrity or extract text.
+- The current results screen reports only local rule-based checks; resume scoring, recommendations, history, and server-side AI analysis are not implemented.
 - Authentication, API URL configuration in Flutter, and a production API contract for document uploads.
 - Data retention/deletion policy and supported document limits.
 - Real analysis endpoint and server-side OpenAI adapter using `gpt-5-mini`, structured output validation, timeouts, and mocked provider tests.
 - Production Android application ID and emulator/physical-device run-through.
 - Successful GitHub Actions run. Local checks passed, but GitHub CI has not been observed.
+
+## Local file selection and next extraction work
+
+Pasted text remains a permanent alternative. **Upload resume → Choose file** now opens the platform file dialog. The current local picker accepts PDF/DOCX filenames (case-insensitive) with a nonzero size up to 5 MiB (5,242,880 bytes), displayed as 5 MiB in the UI. These are initial picker defaults from the earlier proposal; team confirmation and the future server-side upload contract remain open (checklist 3.1).
+
+A selection shows filename and size. Replace/remove are available; cancellation and invalid replacement preserve the current selection. Errors offer retry or **Paste resume instead**. Selection state is held for the current screen session and not persisted by app code. The native plugin may read/copy files into platform app cache during selection; this is not a guarantee of metadata-only access or immediate cache deletion. No resume content or native error details are logged or sent to the backend/provider.
+
+Extension/size validation does not detect corrupt or scanned documents. Next steps:
+
+1. Give extraction a dedicated service boundary that converts valid PDF/DOCX to plain text without provider calls or content logs.
+2. Reuse `ResumeChecker.check(resumeText, targetRole:)` and `ResumeFeedback`/`ResumeResultsScreen`; do not create another checker or results flow.
+3. Handle corrupt, empty-extracted, and scanned documents with actionable errors and paste fallback. Scanned PDFs need OCR or an explicit unsupported result.
+4. Add extraction and extraction-to-checker tests. File-based checking is accepted only when valid PDF/DOCX reach the same feedback screen as pasted text.
+5. Confirm upload limits, authentication, cache/retention/deletion, and server responsibilities before live upload work.
+
+The current local checks are deliberately different from the future AI product. `ResumeChecker` looks for common sections, bullet points, and measurable experience entirely on-device. It does not score hiring potential, claim ATS compatibility, or call a provider. The original server-side AI plan remains future work: secure backend credentials, a defined prompt and response schema, timeouts, provider error handling, and mocked provider tests must be completed before any live AI request.
 
 ## Setup and run
 
@@ -80,22 +101,29 @@ The following results were recorded during local foundation verification on 20 O
 | Check | Result |
 | --- | --- |
 | `flutter pub get` | Passed; lockfile resolved. Five packages have newer versions outside the current dependency constraints; no broad upgrade was made. |
-| `dart format lib test` | Passed; files formatted. |
+| `dart format lib test` | Passed for the current app; five Dart files formatted with no changes on the final verification. |
 | `dart format --output=none --set-exit-if-changed lib test` | Passed after formatting. |
 | `flutter analyze` | Passed; no issues found. |
-| `flutter test` | Passed; 1 widget test. |
+| `flutter test` | Passed; 5 tests covering the pasted input, feedback screen, and independent checker behavior. |
 | `flutter build apk --debug` | Passed; created `build/app/outputs/flutter-apk/app-debug.apk`. |
 | `npm ci` | Passed; 66 packages installed, audit reported 0 vulnerabilities. |
 | `npm run check` | Passed; backend syntax checks. |
 | `npm test` | Passed; 4 API tests. |
 | `git diff --check` | Passed for tracked changes. New files were also checked for trailing whitespace before handover. |
 
-An initial test attempt exposed issues in the new tests and was corrected before the passing rerun. The backend tests require loopback access; they passed when run with it available. `flutter run` on an emulator/device and GitHub CI were not part of that verification.
+Milestone 2 verification was rerun locally on 22 October 2026 after the checker/results refactor: `dart format lib test`, `flutter analyze`, `flutter test` (5 passed), and `git diff --check` passed. The emulator workflow was manually reported as working by the teammate; this session did not launch `flutter run` itself.
+
+File-selection verification on 22 October 2026 used an isolated Flutter 3.47.7 / Dart 3.13.5 SDK because the system SDK was older than this repository requires. `dart format`, `flutter analyze`, and the 19 tests covering existing checks and file selection passed. `flutter build apk --debug` also passed with the native selector plugin. The native file dialog has not been exercised manually on a device. GitHub CI has not been observed.
+
+Scroll-fix verification on 22 October 2026: the full `flutter test` suite passed **21 tests**; format check, `flutter analyze`, `git diff --check`, and the final Android debug APK build passed. The first scroll-test run failed because its platform override was cleaned up after Flutter checked test invariants; using `TargetPlatformVariant` corrected the test and the full rerun passed. Manual device interaction and GitHub CI remain unverified.
+
+An initial test attempt exposed issues in the milestone-2 tests and was corrected before the passing rerun. The backend tests require loopback access; they passed when run with it available. `flutter run` on an emulator/device and GitHub CI were not part of that verification.
 
 ## Known issues and limitations
 
-- The UI selects a local file but does not upload it or start analysis. The backend's 501 route is validation-only.
-- The documented three-step flow is a concept shown on the home screen, not an implemented end-to-end workflow.
+- The UI accepts pasted text for checks and selects PDF/DOCX locally, but does not parse files, upload them, or start server-side analysis. The backend's 501 route is validation-only.
+- The current results are local rule-based checks, not an AI result, hiring score, ATS score, recommendation engine, or history feature.
+- Future file-based checks must add extraction, handle empty/corrupt/scanned documents, and pass extracted text into the existing checker/results flow. Extension/size validation alone does not establish document validity.
 - The Android application ID is still Flutter's generated example ID.
 - `flutter doctor -v`, `flutter run` on an emulator/device, and GitHub Actions have not been verified in the recorded setup checks.
 - No real API key or resume data was used. There were no live OpenAI calls.
@@ -103,21 +131,18 @@ An initial test attempt exposed issues in the new tests and was corrected before
 
 ## Prioritized next steps
 
-1. **Development checklist 1.1:** launch the app with `flutter run` from the repository root on an emulator/device and verify the home screen. APK compilation is not a substitute for a device launch.
-2. **Development checklist 1.7:** have another teammate follow the setup guide and confirm a fresh clone can run.
-3. Before accepting resumes, agree on the workflow, authentication, supported formats, upload limits, retention, and deletion; record the decisions in `docs/API.md` and `docs/ARCHITECTURE.md`.
-4. Implement and test resume input, extraction, secure provider calls, and results in dependency order in `docs/DEVELOPMENT_CHECKLIST.md`.
-5. Replace the Android example application ID, verify local Android setup, and confirm both CI jobs on GitHub before release.
+1. **Development checklist 3.1:** confirm initial PDF/DOCX picker defaults and limits with the team; local selection/validation tests now pass (3.2–3.7). Native dialog/device verification is tracked separately.
+2. **Development checklist 4.3–4.6:** decide whether extraction is local or backend-owned, handle corrupt/empty/scanned documents, and connect successful extracted text to `ResumeChecker` and `ResumeResultsScreen`.
+3. **Development checklist 1.1 and 1.7:** launch the app on an emulator and have another teammate follow the setup guide and confirm a fresh clone can run.
+4. Before accepting real resumes, agree on authentication, upload limits, retention, and deletion; record decisions in `docs/API.md` and `docs/ARCHITECTURE.md`.
+5. Complete the separate server-side AI plan in Phase 5 before claiming AI analysis; then replace the Android example ID and confirm GitHub CI before release.
 
 ## Keeping the handover current
 
 When architecture, verified functionality, environment requirements, test results, or the next recommended task changes, update this document and the matching development checklist. Keep `SETUP_CHECKLIST.md` focused on machine setup and running the project. Mark roadmap items complete only after implementation and relevant verification; record CI status separately from local checks.
 
-## Local file selection update — 20 October 2026
+## Fileupload integration review — 22 October 2026
 
-Added `file_picker` 13.1.0, PDF/DOCX extension and positive size validation (maximum 5 MiB), selected filename/type/size, replace/remove, cancellation preservation, busy state, and safe access failures. Selection is held only in widget memory. No content inspection, upload, extraction, persistence, or provider calls were added. Native pickers may cache documents locally; removing the selection only clears the app reference. These initial local limits can be revised by the team before upload integration.
+Reconciled Fileupload with origin/main at dde7a38. Kept main’s paste/check/results navigation, scroll behavior, file_selector adapter and selection screen; retained Fileupload’s 5 MiB local limit. Removed the superseded inline ResumeInput widget and file_picker dependency. Existing main tests cover selection, validation, cancellation, replacement, removal, errors and disposal. No upload, parsing or AI calls were added. Original checkout Git metadata is read-only; merge preparation and verification occurred in a temporary clone.
 
-Verification results for this update are recorded below; prior foundation results above are historical. Branch creation was blocked by read-only Git metadata, so changes remain uncommitted on `main`.
-
-- Passed: offline `flutter pub get`, Dart format check (3 files), `flutter analyze` (no issues), and `git diff --check`. Flutter ran from a writable temporary SDK copy with analytics suppressed.
-- Blocked: `flutter test` could not bind its loopback server (OS permission denied); no tests executed. `flutter build apk --debug` could not write the Gradle wrapper cache lock. Android native picker/device behavior and GitHub CI remain unverified. Backend was unchanged and its tests were not rerun.
+Review verification: Dart format check passed for 11 files and whitespace/conflict-marker checks passed. Dependency resolution was blocked: file_selector is absent from the offline cache and online retrieval did not complete. Analysis, tests, APK build and native device behavior are therefore unverified for this merge.
