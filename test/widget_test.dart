@@ -62,9 +62,7 @@ void main() {
     expect(find.text('Quantified experience'), findsOneWidget);
   });
 
-  testWidgets('upload entry explains that file selection is unavailable', (
-    tester,
-  ) async {
+  testWidgets('upload entry opens local file selection', (tester) async {
     await tester.pumpWidget(const AiresumeApp());
     await tester.dragUntilVisible(
       find.text('Upload resume'),
@@ -76,9 +74,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Upload resume'), findsOneWidget);
-    expect(find.text('File selection is not available yet'), findsOneWidget);
+    expect(find.text('Choose a resume file'), findsOneWidget);
+    expect(find.text('Choose file'), findsOneWidget);
     expect(
-      find.textContaining('No file was uploaded or analyzed.'),
+      find.textContaining('Files are selected locally and are not uploaded.'),
       findsOneWidget,
     );
     expect(find.text('Paste resume'), findsNothing);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'resume_checker.dart';
 import 'resume_results_screen.dart';
+import 'resume_upload_screen.dart';
 
 void main() {
   runApp(const AiresumeApp());
@@ -270,47 +271,6 @@ B.S. Computer Science, State University''';
                 child: const Text('Check resume'),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ResumeUploadScreen extends StatelessWidget {
-  const ResumeUploadScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Upload resume')),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.upload_file_outlined,
-                  color: Color(0xFF1F766A),
-                  size: 48,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'File selection is not available yet',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'To check a resume now, go back and choose Paste resume. No file was uploaded or analyzed.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF53615E), height: 1.5),
-                ),
-              ],
-            ),
           ),
         ),
       ),

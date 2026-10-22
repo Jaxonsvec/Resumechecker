@@ -6,11 +6,11 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Current progress
 
-- **Completed:** 1.2, 1.3, 2.2, 4.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
+- **Completed:** 1.2, 1.3, 2.2, 3.2–3.7, 4.8, 9.1, 9.2, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
 - **In progress:** None recorded. Do not infer an owner or active task from an unchecked box.
 - **Next:** 1.1 — launch the app on an emulator or device from the repository root. The debug APK was built, but device launch is unverified.
 - **Remaining:** All unchecked items below; see the dependency and acceptance gates near the end of this document.
-- **Milestone 2 verified:** The current app accepts pasted text, runs independent local checks, and displays reusable feedback. Flutter tests passed 5 tests on 22 October 2026. Pasted text is a permanent input method; file selection, validation, extraction, and connecting extracted text remain planned for the second input method.
+- **Milestone 2 verified:** The current app accepts pasted text, runs independent local checks, and displays reusable feedback. Flutter tests passed 5 tests on 22 October 2026. Pasted text is a permanent input method. Local PDF/DOCX selection and basic validation now pass focused tests; extraction and connecting extracted text remain planned for the second input method.
 
 ## Phase 1: Project Foundation
 
@@ -35,23 +35,21 @@ Use this checklist as the team's source of truth for building the application. W
 ## Phase 3: Resume Input
 
 - [ ] 3.1 — Choose supported resume formats and define file size limits.
-- [ ] 3.2 — Implement resume file selection in Flutter.
-- [ ] 3.3 — Display the selected filename and file details.
-- [ ] 3.4 — Validate file types and file size.
-- [ ] 3.5 — Allow the user to replace or remove the selected resume.
-- [ ] 3.6 — Handle cancellation, invalid files, and permission errors.
-- [ ] 3.7 — Add tests for resume selection and validation.
+- [x] 3.2 — Implement resume file selection in Flutter. *(Native picker is connected to the home upload entry; local tests passed.)*
+- [x] 3.3 — Display the selected filename and file details. *(Filename and size appear after selection; widget test passed.)*
+- [x] 3.4 — Validate file types and file size. *(PDF/DOCX extensions and nonzero size through 10 MiB; boundary tests passed.)*
+- [x] 3.5 — Allow the user to replace or remove the selected resume. *(Replace/remove controls and preservation on invalid replacement; widget test passed.)*
+- [x] 3.6 — Handle cancellation, invalid files, and permission errors. *(Cancellation, validation/access errors, retry, and async disposal tests passed.)*
+- [x] 3.7 — Add tests for resume selection and validation. *(Service and widget selection tests passed locally on 22 October 2026.)*
 
-### File-upload handoff plan
+### File-selection status and extraction handoff
 
-These are proposals for the next teammate, not completed work:
-
-- Connect a PDF/DOCX picker to `ResumeInputScreen` beside the existing pasted-text field. Keep cancellation non-destructive and show selected filename/size before continuing.
-- Propose PDF and DOCX as the first supported formats with a 10 MB per-file limit. Confirm these choices before implementation; they are not yet a product contract.
-- Keep extension/size validation at the input boundary. Give extraction its own service responsibility for converting valid files to plain text, reporting corrupt/unsupported files, and avoiding resume-content logs.
-- On successful extraction, pass the resulting text and optional role to `ResumeChecker.check(...)`, then pass `ResumeFeedback` to `ResumeResultsScreen`. Uploaded and pasted resumes must share this flow.
-- Define behavior for picker cancellation, invalid/oversized files, extraction errors, empty documents, and scanned PDFs without selectable text. Scanned PDFs require OCR or a clear unsupported state.
-- Add picker, validation-boundary, extraction-failure, empty/scanned-document, and extracted-text-to-checker tests. Acceptance requires valid PDF/DOCX files to reach the same feedback screen as pasted text.
+- **Upload resume → Choose file** opens a native PDF/DOCX picker with an initial 10 MiB limit (10,485,760 bytes, displayed as 10 MB). These local defaults implement the previous proposal; team confirmation and future server-side contract remain open in 3.1.
+- The selected filename/size, replace/remove, non-destructive cancellation and invalid replacement, empty/oversized/unsupported-file errors, access-error retry, and paste-text fallback are implemented and covered by local tests. Native dialog behavior must also be checked on a device.
+- File content integrity, text extraction, corrupt/scanned-document handling, and extracted-text-to-checker integration remain incomplete. Selection alone does not make file-based analysis work.
+- Implement extraction as a dedicated service. Pass successful text and optional role to the existing `ResumeChecker` and `ResumeResultsScreen` flow.
+- Add corrupt-file, empty-extracted-text, scanned-PDF, and extraction-to-checker tests. Valid PDF/DOCX must reach the shared feedback screen before claiming file-based checking.
+- The native picker may read/copy selected files into platform app cache. Agree cache/retention/deletion rules before live processing; app code does not log or transmit contents.
 
 ## Phase 4: Backend and Resume Processing
 
@@ -150,7 +148,7 @@ Do not mark planned features as completed. If a task is blocked, record the bloc
 ## Dependencies and acceptance gates
 
 - **Foundation (Phase 1):** Use the [setup checklist](SETUP_CHECKLIST.md) first. Phase 1.1 is accepted after `flutter run` from the repository root reaches the home screen on an emulator or device. Phase 1.7 requires a teammate to complete a fresh clone/setup/run without relying on this machine's local paths.
-- **Workflow and input (Phases 2–3):** Get team agreement on 2.1 and screen review 2.7. Agree file formats and limits in 3.1 before choosing a picker or accepting files. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
+- **Workflow and input (Phases 2–3):** Get team agreement on 2.1 and screen review 2.7. Local selection currently uses initial PDF/DOCX and 10 MiB defaults; finalize file formats and limits with the team in 3.1 before file processing/upload work. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
 - **Backend processing (Phase 4):** Finalize 4.1 and the privacy/data decisions in 8.3–8.6 before accepting real resumes. Upload handling, file validation, extraction, unsupported/scanned-document behavior, size limits, errors, and timeouts must be tested independently before integration.
 - **AI analysis (Phase 5):** Confirm criteria and provider/model (5.1–5.2) before implementing prompts or requests. Keep credentials server-side. Define and validate the response schema; use mocked provider responses for routine tests and synthetic resumes for evaluation.
 - **Flutter integration and results (Phases 6–7):** These depend on a stable API request/response contract, working backend analysis, and file input. End-to-end acceptance requires upload progress, response parsing, useful failures/retry, results display, and mocked success/error UI coverage.
