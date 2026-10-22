@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'resume_checker.dart';
+import 'resume_results_screen.dart';
+
 void main() {
   runApp(const AiresumeApp());
 }
@@ -101,9 +104,13 @@ class HomeScreen extends StatelessWidget {
                 const _WorkflowCard(),
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  onPressed: () => _showUnavailable(context),
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: const Text('Choose a resume'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ResumeInputScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.edit_note_outlined),
+                  label: const Text('Paste resume'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(56),
                     backgroundColor: const Color(0xFF1F766A),
@@ -112,8 +119,24 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ResumeUploadScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.upload_file_outlined),
+                  label: const Text('Upload resume'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    foregroundColor: const Color(0xFF1F766A),
+                    side: const BorderSide(color: Color(0xFF1F766A)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 const Text(
-                  'PDF or DOCX · Your resume is personal. It will only be sent after secure upload is implemented.',
+                  'Pasted text is checked locally on this device.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF687572),
@@ -128,21 +151,168 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _showUnavailable(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Resume upload is coming next'),
-        content: const Text(
-          'This project foundation does not upload or analyze files yet. A secure backend is needed before resumes can be handled.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
+class ResumeInputScreen extends StatefulWidget {
+  const ResumeInputScreen({super.key});
+
+  @override
+  State<ResumeInputScreen> createState() => _ResumeInputScreenState();
+}
+
+class _ResumeInputScreenState extends State<ResumeInputScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _resumeController = TextEditingController();
+  final _targetRoleController = TextEditingController();
+
+  @override
+  void dispose() {
+    _resumeController.dispose();
+    _targetRoleController.dispose();
+    super.dispose();
+  }
+
+  void _useSampleResume() {
+    _resumeController.text = '''Jordan Lee
+jordan.lee@example.com | Austin, TX
+
+Summary
+Product-minded software engineer with experience building reliable web tools.
+
+Experience
+Software Engineer, Northstar Labs - 2022-Present
+- Built internal dashboards used by 120+ teammates.
+- Reduced report generation time by 35% through targeted automation.
+
+Education
+B.S. Computer Science, State University''';
+    _targetRoleController.text = 'Software Engineer';
+  }
+
+  void _submit() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final feedback = const ResumeChecker().check(
+      _resumeController.text,
+      targetRole: _targetRoleController.text,
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ResumeResultsScreen(feedback: feedback),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Paste resume')),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            children: [
+              Text(
+                'Paste resume',
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Enter your resume text to run basic rule-based checks.',
+                style: TextStyle(color: Color(0xFF53615E), height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _resumeController,
+                minLines: 12,
+                maxLines: 18,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Resume text',
+                  hintText: 'Paste the text from your resume here',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter resume text to continue.'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _targetRoleController,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(
+                  labelText: 'Target role',
+                  hintText: 'Optional - for example, Product Designer',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _useSampleResume,
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: const Text('Load sample resume'),
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: _submit,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  backgroundColor: const Color(0xFF1F766A),
+                  foregroundColor: Colors.white,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                child: const Text('Check resume'),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class ResumeUploadScreen extends StatelessWidget {
+  const ResumeUploadScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Upload resume')),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.upload_file_outlined,
+                  color: Color(0xFF1F766A),
+                  size: 48,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'File selection is not available yet',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'To check a resume now, go back and choose Paste resume. No file was uploaded or analyzed.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF53615E), height: 1.5),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -168,11 +338,11 @@ class _WorkflowCard extends StatelessWidget {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 18),
-          _WorkflowStep(number: '01', label: 'Add your resume'),
+          _WorkflowStep(number: '01', label: 'Paste resume'),
           SizedBox(height: 14),
           _WorkflowStep(number: '02', label: 'Tell us about your next role'),
           SizedBox(height: 14),
-          _WorkflowStep(number: '03', label: 'Review focused suggestions'),
+          _WorkflowStep(number: '03', label: 'Review basic checks'),
         ],
       ),
     );
