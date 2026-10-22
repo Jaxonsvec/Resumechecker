@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_scroll_behavior.dart';
 import 'resume_checker.dart';
 import 'resume_results_screen.dart';
 import 'resume_upload_screen.dart';
@@ -17,6 +18,7 @@ class AiresumeApp extends StatelessWidget {
     return MaterialApp(
       title: 'Airesume',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const AppScrollBehavior(),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1F766A),

@@ -45,7 +45,7 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 ## 5. Run the app and optional API
 
 - [ ] From the repository root, run `flutter run` and select the running emulator/device. You can target a device with `flutter run -d <device-id>`.
-- [ ] Confirm the Airesume home screen and workflow summary appear.
+- [ ] Confirm the Airesume home screen and workflow summary appear. Scroll normally and drag past the top/bottom edges; content should not stretch on Android.
 - [ ] Tap **Paste resume**, load the synthetic sample, and confirm **Check resume** opens basic feedback.
 - [ ] Tap **Upload resume**, then **Choose file**. Select a synthetic PDF/DOCX (up to 10 MB) and confirm filename/size, replacement, removal, and cancellation work. Files are selected locally only; extraction and upload are not implemented.
 - [ ] Optional: from `backend/`, run `npm start`; verify `http://localhost:3000/health` returns `{"status":"ok"}`.

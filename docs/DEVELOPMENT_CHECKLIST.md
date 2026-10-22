@@ -25,7 +25,7 @@ Use this checklist as the team's source of truth for building the application. W
 ## Phase 2: Define the User Experience
 
 - [ ] 2.1 — Finalize the primary user workflow.
-- [x] 2.2 — Design the home screen and resume-analysis entry point. *(Home screen and CTA are implemented and covered by the widget test; team review is still needed.)*
+- [x] 2.2 — Design the home screen and resume-analysis entry point. *(Home screen and CTA are implemented and covered by widget tests. Android top/bottom drag tests verify the scrolling content no longer stretches; team review is still needed.)*
 - [ ] 2.3 — Design the resume selection and upload screen.
 - [ ] 2.4 — Design the analysis progress screen.
 - [ ] 2.5 — Design the results and recommendations screen.
@@ -112,7 +112,7 @@ The current `ResumeChecker` is intentionally local and rule-based: it checks com
 ## Phase 9: Testing and Quality Assurance
 
 - [x] 9.1 — Add Flutter unit tests for models and services. (The plain-text ResumeChecker has tests for passing checks, specific failures, and retained source/role data.)
-- [x] 9.2 — Add widget tests for the main screens and interactions. (The input-to-feedback flow, validation, sample resume, and feedback copy are covered.)
+- [x] 9.2 — Add widget tests for the main screens and interactions. (The input-to-feedback flow, file selection, validation, sample resume, feedback copy, Android home edge drags, and desktop scrollbar preservation are covered; all 21 Flutter tests passed on 22 October 2026.)
 - [ ] 9.3 — Add backend unit and API integration tests.
 - [ ] 9.4 — Test invalid uploads, network failures, and AI provider errors.
 - [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally for the current implementation: Flutter format/analyze/widget tests and backend syntax/API tests passed.)*
