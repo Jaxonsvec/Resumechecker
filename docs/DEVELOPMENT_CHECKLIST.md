@@ -10,6 +10,7 @@ Use this checklist as the team's source of truth for building the application. W
 - **In progress:** None recorded. Do not infer an owner or active task from an unchecked box.
 - **Next:** 1.1 — launch the app on an emulator or device from the repository root. The debug APK was built, but device launch is unverified.
 - **Remaining:** All unchecked items below; see the dependency and acceptance gates near the end of this document.
+- **Milestone 2 verified:** The current app accepts pasted text, runs independent local checks, and displays reusable feedback. Flutter tests passed 5 tests on 22 October 2026. Pasted text is a permanent input method; file selection, validation, extraction, and connecting extracted text remain planned for the second input method.
 
 ## Phase 1: Project Foundation
 
@@ -41,6 +42,17 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 3.6 — Handle cancellation, invalid files, and permission errors.
 - [ ] 3.7 — Add tests for resume selection and validation.
 
+### File-upload handoff plan
+
+These are proposals for the next teammate, not completed work:
+
+- Connect a PDF/DOCX picker to `ResumeInputScreen` beside the existing pasted-text field. Keep cancellation non-destructive and show selected filename/size before continuing.
+- Propose PDF and DOCX as the first supported formats with a 10 MB per-file limit. Confirm these choices before implementation; they are not yet a product contract.
+- Keep extension/size validation at the input boundary. Give extraction its own service responsibility for converting valid files to plain text, reporting corrupt/unsupported files, and avoiding resume-content logs.
+- On successful extraction, pass the resulting text and optional role to `ResumeChecker.check(...)`, then pass `ResumeFeedback` to `ResumeResultsScreen`. Uploaded and pasted resumes must share this flow.
+- Define behavior for picker cancellation, invalid/oversized files, extraction errors, empty documents, and scanned PDFs without selectable text. Scanned PDFs require OCR or a clear unsupported state.
+- Add picker, validation-boundary, extraction-failure, empty/scanned-document, and extracted-text-to-checker tests. Acceptance requires valid PDF/DOCX files to reach the same feedback screen as pasted text.
+
 ## Phase 4: Backend and Resume Processing
 
 - [ ] 4.1 — Finalize the API contract and analysis request/response models.
@@ -51,6 +63,8 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 4.6 — Handle scanned PDFs and unsupported documents appropriately.
 - [ ] 4.7 — Add consistent API errors, request limits, and timeouts. *(Consistent errors and a JSON size limit exist; request timeouts are not implemented.)*
 - [x] 4.8 — Test the backend independently of the Flutter application. *(Verified locally: `npm ci`, `npm run check`, and all four `npm test` API tests passed.)*
+
+The current `ResumeChecker` is intentionally local and rule-based: it checks common sections, bullet points, and quantified experience without a provider, hiring score, or ATS claim. It is separate from the future server-side AI work below, which still requires secure credentials, prompts, schema validation, timeouts, provider error handling, and mocked tests.
 
 ## Phase 5: AI Resume Analysis
 
@@ -99,8 +113,8 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Phase 9: Testing and Quality Assurance
 
-- [ ] 9.1 — Add Flutter unit tests for models and services.
-- [ ] 9.2 — Add widget tests for the main screens and interactions.
+- [x] 9.1 — Add Flutter unit tests for models and services. (The plain-text ResumeChecker has tests for passing checks, specific failures, and retained source/role data.)
+- [x] 9.2 — Add widget tests for the main screens and interactions. (The input-to-feedback flow, validation, sample resume, and feedback copy are covered.)
 - [ ] 9.3 — Add backend unit and API integration tests.
 - [ ] 9.4 — Test invalid uploads, network failures, and AI provider errors.
 - [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally for the current implementation: Flutter format/analyze/widget tests and backend syntax/API tests passed.)*
