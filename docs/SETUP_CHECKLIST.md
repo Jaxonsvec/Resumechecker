@@ -46,7 +46,7 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 
 - [ ] From the repository root, run `flutter run` and select the running emulator/device. You can target a device with `flutter run -d <device-id>`.
 - [ ] Confirm the Airesume home screen and workflow summary appear.
-- [ ] Tap **Choose a resume** and confirm the app explains that upload is not implemented. This is the expected current behavior.
+- [ ] Tap **Preview the workflow**, then **Choose a resume**; confirm the app explains that file selection is not connected. This is the expected current behavior.
 - [ ] Optional: from `backend/`, run `npm start`; verify `http://localhost:3000/health` returns `{"status":"ok"}`.
 - [ ] Optional: send valid JSON to `/api/v1/analyses` and confirm it returns HTTP 501. This route validates request shape but does not analyze or store resume text.
 

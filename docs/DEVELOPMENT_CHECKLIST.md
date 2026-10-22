@@ -1,14 +1,14 @@
 # Airesume — Development Checklist
 
-Before taking a task, read the agent guidance in [AGENTS.md](../AGENTS.md), the contributor entry point in [README.md](../README.md), and the current [project handover](HANDOVER.md). Use [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) for machine setup; this file tracks feature work.
+Before taking a task, start with the current [project handover](HANDOVER.md), then follow the onboarding sequence in [README.md](../README.md). AI coding agents must follow [AGENTS.md](../AGENTS.md), which requires reading the handover first. Use [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) for machine setup; this file tracks feature work.
 
 Use this checklist as the team's source of truth for building the application. Work through tasks in order and check items only when implemented and tested.
 
 ## Current progress
 
-- **Completed:** 1.2, 1.3, 2.2, 4.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
-- **In progress:** None recorded. Do not infer an owner or active task from an unchecked box.
-- **Next:** 1.1 — launch the app on an emulator or device from the repository root. The debug APK was built, but device launch is unverified.
+- **Completed:** 1.2–1.6, 2.2–2.6, 4.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
+- **In progress:** 2.1 — a draft flow is represented in the prototype, but the team has not confirmed it. Item 2.7 is waiting for team review.
+- **Next:** 1.1 — launch the app on an Android emulator or physical device from the repository root. No Android target is currently connected; the Android debug APK compiles.
 - **Remaining:** All unchecked items below; see the dependency and acceptance gates near the end of this document.
 
 ## Phase 1: Project Foundation
@@ -16,19 +16,19 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 1.1 — Confirm the Flutter app runs from the repository root.
 - [x] 1.2 — Verify Flutter formatting, static analysis, and tests pass. *(Verified locally: Dart format check, `flutter analyze`, and `flutter test` passed.)*
 - [x] 1.3 — Review and finalize the folder structure. *(Root Flutter app, `backend/`, `docs/`, and `.github/workflows/` are present and reviewed.)*
-- [ ] 1.4 — Establish a consistent theme, colors, typography, and reusable UI components.
-- [ ] 1.5 — Configure navigation between application screens.
-- [ ] 1.6 — Add reusable loading, empty, error, and success states.
+- [x] 1.4 — Establish a consistent theme, colors, typography, and reusable UI components. *(Implemented in `lib/theme/app_theme.dart`; shared color tokens, Material 3 styles, card and button styles are consumed by the app.)*
+- [x] 1.5 — Configure navigation between application screens. *(Home → workflow → analysis → results prototype screens navigate through Flutter routes; widget tests cover the flow. These are previews, not functional resume processing.)*
+- [x] 1.6 — Add reusable loading, empty, error, and success states. *(Implemented in `lib/widgets/feedback_state.dart`; widget test verifies each state variant.)*
 - [ ] 1.7 — Verify the project can be cloned and run by another team member.
 
 ## Phase 2: Define the User Experience
 
 - [ ] 2.1 — Finalize the primary user workflow.
 - [x] 2.2 — Design the home screen and resume-analysis entry point. *(Home screen and CTA are implemented and covered by the widget test; team review is still needed.)*
-- [ ] 2.3 — Design the resume selection and upload screen.
-- [ ] 2.4 — Design the analysis progress screen.
-- [ ] 2.5 — Design the results and recommendations screen.
-- [ ] 2.6 — Design error, retry, and unsupported-file states.
+- [x] 2.3 — Design the resume selection and upload screen. *(Prototype presents an empty selection card, disabled continue action, pending format/size decisions, and an explicit no-upload notice; the file picker is not implemented.)*
+- [x] 2.4 — Design the analysis progress screen. *(Prototype shows illustrative review steps and progress, states that no request is running, and is covered by navigation tests.)*
+- [x] 2.5 — Design the results and recommendations screen. *(Prototype lays out summary, strengths, and improvement sections without inventing a score or claiming analyzed results; widget tests cover these sections.)*
+- [x] 2.6 — Design error, retry, and unsupported-file states. *(Proposed unsupported-file and connection-error copy/actions are shown and covered by widget tests; file validation and real retry are not implemented.)*
 - [ ] 2.7 — Review the screens with the team before implementing the full workflow.
 
 ## Phase 3: Resume Input
@@ -144,4 +144,4 @@ Do not mark planned features as completed. If a task is blocked, record the bloc
 
 ## First incomplete task
 
-**1.1 — Confirm the Flutter app runs from the repository root.** The debug APK builds and the widget test passes, but the app has not been launched on an emulator or physical device. Run `flutter run` from the repository root and verify the home screen on a device before checking this item.
+**1.1 — Confirm the Flutter app runs from the repository root.** The debug APK builds, analysis passes, and widget tests cover the prototype navigation, but `flutter devices` found no Android emulator or physical device. Run `flutter run` from the repository root and verify the home screen on an Android device before checking this item. Task 1.7 also needs another teammate to complete the documented fresh-clone setup and run.
