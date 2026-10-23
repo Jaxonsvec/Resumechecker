@@ -8,7 +8,9 @@ On Windows, use a stable Flutter SDK at version 3.47.7 or a compatible newer sta
 
 ## Environment configuration
 
-The Flutter app currently has no environment variables and does not connect to an API. When API integration is added, provide non-secret per-developer configuration (for example an API base URL via `--dart-define=API_BASE_URL=...`). Never put an OpenAI key in Flutter configuration. Backend-only settings belong in an ignored local `.env`; commit only placeholder names in `.env.example`. Actual OpenAI requests require a valid key and may incur usage charges. Do not make live provider calls in tests.
+The Flutter app accepts a non-secret API base URL with `--dart-define=API_BASE_URL=...`; it defaults to `http://10.0.2.2:3000` on Android and `http://localhost:3000` elsewhere. Tests cover both defaults and the compile-time override. Android INTERNET permission is present, and cleartext HTTP is enabled only in the debug manifest. Never put an OpenAI key in Flutter configuration. Backend-only settings belong in an ignored local `.env`; Node's env-file loading is verified. `.env.example` lists `PORT`, `OPENAI_API_KEY`, `OPENAI_MODEL`, and the exact browser origin allowlist `CORS_ALLOWED_ORIGINS`. Actual OpenAI requests require a valid key and may incur usage charges. Do not make live provider calls in tests.
+
+The backend analysis endpoint accepts one PDF or DOCX file (10 MiB maximum) as multipart field `resume`, plus optional `targetRole`. It extracts text in memory, then calls the configured OpenAI model and returns schema-validated feedback. The Flutter app requests consent, uploads the selected file, shows progress, and renders actual result fields; tests use fake responses only. `npm install` succeeded with OpenAI SDK 6.49.0 and Zod 4.6.7; `npm run check` and ten mocked API/unit tests pass. No key is set in this checkout, and no live provider request was made. Never use a real resume for routine tests.
 
 ## Handover board
 
@@ -16,15 +18,17 @@ The Flutter app currently has no environment variables and does not connect to a
 
 - Root Flutter scaffold retained and replaced with the Airesume foundation screen.
 - Flutter/Dart toolchain requirement documented from the local SDK metadata.
-- Architecture and API boundary documented without claiming analysis is working.
-- Express and Zod backend foundation with a tested health check, validated placeholder analysis request, and consistent JSON errors.
+- Architecture and API boundary documented; local mocked verification is distinguished from live provider behavior.
+- Express/Zod API with PDF/DOCX upload, signature and size validation, in-memory text extraction, structured OpenAI analysis, safe errors, and mocked tests are implemented in source. Local mocked checks pass; clean dependency installation and synthetic-document extraction verification remain pending because npm registry DNS resolution failed in this environment.
 - GitHub Actions workflow added for Flutter analysis, tests, and Android debug build.
+- Phase 3 selection and Phase 6 integration: after processing acknowledgment, the selected resume is uploaded to the configured backend and structured feedback is rendered with retryable errors. Automated tests use fake responses only.
 
 ### Incomplete / next decisions
 
-- Implement document extraction, connection to shared local checks, and upload/progress states. Native PDF/DOCX selection already supports filename/size, validation, replace/remove, cancellation, and errors.
-- Decide authentication, upload size/retention/deletion, supported formats, and text extraction library.
-- Build the secure backend and OpenAI provider adapter for `gpt-5-mini`; validate output and mock provider calls in tests.
+- Confirm authentication, user consent, retention/deletion, provider data handling, and deployment controls before processing real resumes in production.
+- Verify PDF/DOCX extraction with synthetic documents and run the connected workflow on an Android emulator/device.
+- Verify the backend dependency installation, extraction library behavior, mocked provider tests, and API behavior in a network-enabled environment; no live model request has been made.
+- The pasted-text path runs basic local rule-based checks. The separate file-selector preview only selects and displays metadata; the connected upload path remains the `Choose a resume` workflow.
 - Configure an Android application ID and test on an emulator or device.
 - Verify Android APK build in an environment with Java and Android SDK installed.
 
