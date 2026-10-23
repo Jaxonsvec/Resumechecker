@@ -4,11 +4,12 @@ Airesume is a Flutter application at the repository root. The Android app is the
 
 ## Current implementation
 
+- The home screen offers three distinct paths: the connected backend analysis workflow, local pasted-text checks, and a local file-selection preview. Pasted text uses `ResumeChecker` and the shared `ResumeFeedback`/results screen entirely on-device. The local preview uses `file_selector` to show filename and size, with replace/remove and cancellation handling; that path does not parse, upload, or analyze the selected file. The native plugin may copy selected data to app cache.
 - Flutter supports PDF/DOCX selection up to 10 MiB and displays file metadata. After an explicit processing acknowledgment, the app reads the selected file, uploads it with optional target role through a reusable multipart HTTP client, shows progress/retry states, validates the JSON response, and renders actual feedback sections. The HTTP client and UI are covered with mocked tests.
 - The Express backend accepts a PDF/DOCX multipart upload at `POST /api/v1/analyses`, checks the file signature and size, extracts text in memory, and calls an injectable analyzer. The default analyzer sends the extracted text to OpenAI using a structured response schema. Uploads and extracted text are not stored by the application.
 - The analysis response contains a summary, evidence-backed strengths and improvements, and missing-information notes. It intentionally contains no numeric score. The server prompt directs the model not to invent facts or infer protected traits.
-- Automated tests use fake extraction/analyzer implementations and never make live provider requests. Dependencies and the refreshed lockfile still need successful installation/verification in an environment with npm registry access.
-- Real app-to-server integration has not been exercised against a clean backend install, Android emulator/device, or live provider. The backend lockfile is stale pending npm registry access.
+- Automated tests use fake extraction/analyzer implementations and never make live provider requests. `flutter pub get` resolved both file-selection plugins during this merge without upgrading the existing Flutter dependencies; backend `npm ci` remains unverified.
+- The file-selector preview is separate from the connected `file_picker` workflow. Avoid describing local selection as an upload or as evidence of file parsing. A real provider request has not been made; document extraction and full end-to-end behavior still need synthetic-file/emulator verification.
 
 ## End-to-end flow
 

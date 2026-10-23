@@ -5,24 +5,98 @@ import 'package:airesume/main.dart';
 import 'package:airesume/widgets/feedback_state.dart';
 
 void main() {
-  testWidgets('home opens the resume-selection screen', (tester) async {
+  testWidgets('home opens the connected resume-selection flow', (tester) async {
     await tester.pumpWidget(const AiresumeApp());
 
     expect(find.text('Make your next move\nwith confidence.'), findsOneWidget);
-    expect(find.text('Add your resume'), findsOneWidget);
     expect(find.text('Tell us about your next role'), findsOneWidget);
-    expect(find.text('Review focused suggestions'), findsOneWidget);
-    await tester.dragUntilVisible(
-      find.text('Choose a resume'),
-      find.byType(ListView).first,
-      const Offset(0, -300),
-    );
+    await _scrollHomeTo(tester, 'Choose a resume');
     await tester.tap(find.text('Choose a resume'));
     await tester.pumpAndSettle();
 
     expect(find.text('Your resume'), findsOneWidget);
     expect(find.text('Start with your resume'), findsOneWidget);
     expect(find.text('No resume selected'), findsOneWidget);
+  });
+
+  testWidgets('home keeps paste and local file selection entry points', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const AiresumeApp());
+    await _scrollHomeTo(tester, 'Paste resume');
+
+    await tester.tap(find.text('Paste resume'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Enter resume text to run basic rule-based checks on this device.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await _scrollHomeTo(tester, 'Select a file locally');
+    await tester.tap(find.text('Select a file locally'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a resume file'), findsOneWidget);
+    expect(
+      find.textContaining('Files are selected locally and are not uploaded.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('pasted resume validates and displays rule-based feedback', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: ResumeInputScreen()));
+
+    await tester.dragUntilVisible(
+      find.text('Check resume'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.tap(find.text('Check resume'));
+    await tester.pump();
+    expect(find.text('Enter resume text to continue.'), findsOneWidget);
+
+    await tester.tap(find.text('Load sample resume'));
+    await tester.pump();
+    expect(find.text('Software Engineer'), findsOneWidget);
+    expect(find.textContaining('Jordan Lee'), findsOneWidget);
+
+    await tester.dragUntilVisible(
+      find.text('Check resume'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.tap(find.text('Check resume'));
+    await tester.pumpAndSettle();
+    expect(find.text('Results'), findsOneWidget);
+    expect(find.text('Basic resume checks'), findsOneWidget);
+    expect(find.text('Edit resume'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.text('Quantified experience'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    expect(find.text('Quantified experience'), findsOneWidget);
+  });
+
+  testWidgets('local file-selection screen supports validation and retry UI', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const AiresumeApp());
+    await _scrollHomeTo(tester, 'Select a file locally');
+    await tester.tap(find.text('Select a file locally'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose a resume file'), findsOneWidget);
+    expect(find.text('Choose file'), findsOneWidget);
+    expect(
+      find.textContaining('Files are selected locally and are not uploaded.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('unsupported-file and retry designs offer a user action', (
@@ -71,12 +145,17 @@ void main() {
   });
 }
 
-Future<void> _openResumeSelection(WidgetTester tester) async {
+Future<void> _scrollHomeTo(WidgetTester tester, String text) async {
   await tester.dragUntilVisible(
-    find.text('Choose a resume'),
+    find.text(text),
     find.byType(ListView).first,
     const Offset(0, -300),
   );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openResumeSelection(WidgetTester tester) async {
+  await _scrollHomeTo(tester, 'Choose a resume');
   await tester.tap(find.text('Choose a resume'));
   await tester.pumpAndSettle();
 }

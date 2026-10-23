@@ -46,6 +46,8 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 
 - [ ] From the repository root, run `flutter run` and select the running emulator/device. You can target a device with `flutter run -d <device-id>`.
 - [ ] Confirm the Airesume home screen and workflow summary appear.
+- [ ] Confirm **Paste resume** runs local rule-based checks and **Choose a resume** opens the connected upload flow.
+- [ ] Optional: **Select a file locally** opens a metadata-only file-selection preview; it does not upload or analyze that file.
 - [ ] Tap **Choose a resume** and select a PDF or DOCX up to 10 MiB. Confirm the filename and size appear, then try replacing and removing the selection.
 - [ ] Configure `API_BASE_URL` if the backend is not at the platform default. Android emulator uses `http://10.0.2.2:3000`; Windows uses `http://localhost:3000`.
 - [ ] Before real analysis, configure a server-side provider key and review the provider's privacy terms. The app requires processing acknowledgment before sending resume text.

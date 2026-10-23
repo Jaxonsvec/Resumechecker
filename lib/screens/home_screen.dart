@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../resume_upload_screen.dart';
+import 'resume_input_screen.dart';
 import '../theme/app_theme.dart';
 import 'resume_selection_screen.dart';
 
@@ -72,8 +74,28 @@ class HomeScreen extends StatelessWidget {
                   label: const Text('Choose a resume'),
                 ),
                 const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ResumeInputScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.edit_note_outlined),
+                  label: const Text('Paste resume'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ResumeUploadScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.folder_open_outlined),
+                  label: const Text('Select a file locally'),
+                ),
+                const SizedBox(height: 12),
                 const Text(
-                  'Choose a PDF or DOCX file to get feedback from the configured analysis service.',
+                  'Choose a resume to send it to the configured analysis service, paste text for on-device checks, or select a file locally for a preview.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF687572),

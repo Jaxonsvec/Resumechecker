@@ -1,6 +1,6 @@
 # Airesume
 
-A Flutter-first AI resume-feedback app. The Flutter flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. The backend extracts text in memory and calls a server-configured OpenAI model. Provider keys stay on the backend, never in Flutter. The Flutter integration is covered by mocked tests; a clean backend install, real document extraction, and live provider request are not verified in this environment.
+A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls a server-configured OpenAI model. Provider keys stay on the backend, never in Flutter. Flutter integration tests use mocks; real document extraction and a live provider request are not verified in this environment.
 
 ## Start here
 
@@ -68,7 +68,7 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 - [Development checklist](docs/DEVELOPMENT_CHECKLIST.md) — feature-by-feature team work plan
 - `.github/workflows/` — Flutter CI
 
-The **Choose a resume** action opens the native file chooser. After you accept the processing notice and press **Analyze resume**, the app uploads the document to the configured backend, which extracts text and sends it to the configured analysis provider. The backend does not store the uploaded file. The API and results UI show a summary, evidence-based strengths, improvements, and missing information. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for setup and limitations.
+The **Choose a resume** action opens the connected PDF/DOCX analysis flow. After you accept the processing notice and press **Analyze resume**, the app uploads the document to the configured backend, which extracts text and sends it to the configured analysis provider. The backend does not store the uploaded file. The API and results UI show a summary, evidence-based strengths, improvements, and missing information. **Paste resume** runs local rule-based checks on the entered text; **Select a file locally** only demonstrates native PDF/DOCX selection and does not upload or analyze that selected file. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for setup and limitations.
 
 ## Backend (optional during Flutter development)
 

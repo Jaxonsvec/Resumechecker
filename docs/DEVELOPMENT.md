@@ -28,6 +28,7 @@ The backend analysis endpoint accepts one PDF or DOCX file (10 MiB maximum) as m
 - Confirm authentication, user consent, retention/deletion, provider data handling, and deployment controls before processing real resumes in production.
 - Verify PDF/DOCX extraction with synthetic documents and run the connected workflow on an Android emulator/device.
 - Verify the backend dependency installation, extraction library behavior, mocked provider tests, and API behavior in a network-enabled environment; no live model request has been made.
+- The pasted-text path runs basic local rule-based checks. The separate file-selector preview only selects and displays metadata; the connected upload path remains the `Choose a resume` workflow.
 - Configure an Android application ID and test on an emulator or device.
 - Verify Android APK build in an environment with Java and Android SDK installed.
 

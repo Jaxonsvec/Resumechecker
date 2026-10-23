@@ -6,7 +6,7 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Current progress
 
-- **Completed:** 1.2–1.6, 2.2–2.6, 3.1–3.7, 4.1, 4.3, 4.4, 4.6, 4.8, 5.1, 5.6, 5.7, 5.9, 6.1–6.7, 7.2–7.4, 7.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
+- **Completed:** 1.2–1.6, 2.2–2.6, 3.1–3.7, 4.1, 4.3, 4.4, 4.6, 4.8, 5.1, 5.6, 5.7, 5.9, 6.1–6.7, 7.2–7.4, 7.8, 9.1, 9.2, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item. The merged local-workflow branch also provides pasted-text rule checks and a separate metadata-only local file-selection preview.
 - **In progress:** 2.1 — a draft flow is represented in the prototype, but the team has not confirmed it. Item 2.7 is waiting for team review.
 - **Next:** Add a developer-owned OpenAI API key locally, restart the backend with it, then verify a real analysis request. Synthetic PDF/DOCX extraction and full upload flow on Android remain to be checked.
 - **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Clean `npm ci`, extraction against synthetic documents, live provider execution, full Android analysis, and GitHub CI are not verified.
@@ -16,15 +16,15 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 1.1 — Confirm the Flutter app runs from the repository root.
 - [x] 1.2 — Verify Flutter formatting, static analysis, and tests pass. *(Verified locally: Dart format check, `flutter analyze`, and `flutter test` passed.)*
 - [x] 1.3 — Review and finalize the folder structure. *(Root Flutter app, `backend/`, `docs/`, and `.github/workflows/` are present and reviewed.)*
-- [x] 1.4 — Establish a consistent theme, colors, typography, and reusable UI components. *(Implemented in `lib/theme/app_theme.dart`; shared color tokens, Material 3 styles, card and button styles are consumed by the app.)*
-- [x] 1.5 — Configure navigation between application screens. *(Home → workflow → analysis → results prototype screens navigate through Flutter routes; widget tests cover the flow. These are previews, not functional resume processing.)*
+- [x] 1.4 — Establish a consistent theme, colors, typography, and reusable UI components. *(Implemented in `lib/theme/app_theme.dart`; shared color tokens, Material 3 styles, card and button styles are consumed by the app. `AppScrollBehavior` also removes edge stretching while retaining platform scrolling.)*
+- [x] 1.5 — Configure navigation between application screens. *(Home → connected resume analysis → results uses Flutter routes; pasted text opens local checks, and the file-selector preview is a separate local-only path. Widget tests cover these flows.)*
 - [x] 1.6 — Add reusable loading, empty, error, and success states. *(Implemented in `lib/widgets/feedback_state.dart`; widget test verifies each state variant.)*
 - [ ] 1.7 — Verify the project can be cloned and run by another team member.
 
 ## Phase 2: Define the User Experience
 
 - [ ] 2.1 — Finalize the primary user workflow.
-- [x] 2.2 — Design the home screen and resume-analysis entry point. *(Home screen and CTA are implemented and covered by the widget test; team review is still needed.)*
+- [x] 2.2 — Design the home screen and resume-analysis entry point. *(Home screen and connected, pasted-text, and local-selection entry points are implemented and covered by widget tests; team review is still needed.)*
 - [x] 2.3 — Design the resume selection and upload screen. *(Selection screen provides metadata, optional target role, processing consent, and connected upload.)*
 - [x] 2.4 — Design the analysis progress screen. *(Shows active upload/analysis progress and completion or failure states.)*
 - [x] 2.5 — Design the results and recommendations screen. *(Renders returned summary, strengths, improvements, and missing information without inventing a score.)*
@@ -33,8 +33,8 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Phase 3: Resume Input
 
-- [x] 3.1 — Choose supported resume formats and define file size limits. *(Local selection accepts PDF and DOCX files from 1 byte through 10 MiB; confirm this policy with the team before implementing uploads.)*
-- [x] 3.2 — Implement resume file selection in Flutter. *(Uses the native file picker and retains the selected file handle in app state; no file contents are read or uploaded.)*
+- [x] 3.1 — Choose supported resume formats and define file size limits. *(Connected and local selection flows accept PDF and DOCX files from 1 byte through 10 MiB; the backend also validates the upload limit. Confirm this policy with the team.)*
+- [x] 3.2 — Implement resume file selection in Flutter. *(The connected `file_picker` path reads selected bytes and uploads only after consent; the separate `file_selector` preview retains metadata and does not upload.)*
 - [x] 3.3 — Display the selected filename and file details. *(Shows filename, extension, and formatted file size.)*
 - [x] 3.4 — Validate file types and file size. *(Checks extension and byte length, including empty and unmeasurable files.)*
 - [x] 3.5 — Allow the user to replace or remove the selected resume. *(Invalid replacements preserve the previous valid selection.)*
@@ -99,11 +99,11 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Phase 9: Testing and Quality Assurance
 
-- [ ] 9.1 — Add Flutter unit tests for models and services.
-- [ ] 9.2 — Add widget tests for the main screens and interactions.
+- [x] 9.1 — Add Flutter unit tests for models and services. *(Checker, file-picker, and API-client tests pass as part of the Flutter suite.)*
+- [x] 9.2 — Add widget tests for the main screens and interactions. *(Connected selection, paste checks, local file selection, scrolling, and feedback states are covered by passing widget tests.)*
 - [ ] 9.3 — Add backend unit and API integration tests.
 - [ ] 9.4 — Test invalid uploads, network failures, and AI provider errors.
-- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 22 October 2026: Dart format check, Flutter analysis, all 16 Flutter tests, backend syntax check, and all ten backend tests passed. URL override has a separate passing targeted test.)*
+- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 22 October 2026: Dart format check, `flutter pub get`, Flutter analysis, all 37 Flutter tests (one opt-in URL override test skipped by default), backend syntax check, and all ten backend tests passed. URL override has a separate passing targeted test.)*
 - [ ] 9.6 — Build a release-mode Android APK.
 - [ ] 9.7 — Perform end-to-end testing on a real device or emulator.
 - [ ] 9.8 — Have a teammate test the app using the documented setup guide.
@@ -136,7 +136,7 @@ Do not mark planned features as completed. If a task is blocked, record the bloc
 ## Dependencies and acceptance gates
 
 - **Foundation (Phase 1):** Use the [setup checklist](SETUP_CHECKLIST.md) first. Phase 1.1 is accepted after `flutter run` from the repository root reaches the home screen on an emulator or device. Phase 1.7 requires a teammate to complete a fresh clone/setup/run without relying on this machine's local paths.
-- **Workflow and input (Phases 2–3):** Get team agreement on 2.1 and screen review 2.7. Phase 3 currently implements PDF/DOCX selection up to 10 MiB for local use; confirm that policy before accepting uploads. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
+- **Workflow and input (Phases 2–3):** Get team agreement on 2.1 and screen review 2.7. Phase 3 implements PDF/DOCX selection up to 10 MiB for both the connected analysis path and the metadata-only preview; confirm that policy. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
 - **Backend processing (Phase 4):** Backend upload/extraction/API source and mocked tests are implemented. Clean dependency installation and PDF/DOCX extraction against synthetic files remain to be verified. Complete authentication, retention/deletion, provider data handling, and deployment controls before production use.
 - **AI analysis (Phase 5):** Default criteria and a configurable OpenAI Responses implementation are in source. Keep credentials server-side. Verify with mocked provider responses and synthetic resumes; do not use live resumes until privacy/data decisions are complete.
 - **Flutter integration and results (Phases 6–7):** The connected upload, progress, response parsing, retry, results display, and mocked success/error UI coverage are implemented and locally tested. Android emulator/device verification remains open.
@@ -144,4 +144,4 @@ Do not mark planned features as completed. If a task is blocked, record the bloc
 
 ## First incomplete task
 
-**1.1 — Confirm the Flutter app runs from the repository root.** The debug APK builds, analysis passes, and widget tests cover the prototype navigation, but `flutter devices` found no Android emulator or physical device. Run `flutter run` from the repository root and verify the home screen on an Android device before checking this item. Task 1.7 also needs another teammate to complete the documented fresh-clone setup and run.
+**1.1 — Confirm the Flutter app runs from the repository root.** The app was launched on the Pixel 7 emulator before this merge; verify the integrated home screen again on the emulator before checking this item. Task 1.7 also needs another teammate to complete the documented fresh-clone setup and run.
