@@ -126,6 +126,63 @@ test('analysis protects provider and text extraction errors with stable response
   await new Promise((resolve) => invalidResultApp.close(resolve));
 });
 
+test('analysis maps provider timeouts and rate limits to stable errors', async () => {
+  let timeoutSignal;
+  let requestedTimeout;
+  const originalTimeout = AbortSignal.timeout;
+  AbortSignal.timeout = (milliseconds) => {
+    requestedTimeout = milliseconds;
+    return originalTimeout(milliseconds);
+  };
+  const timeoutServer = createServer(createApp({
+    textExtractor: async () => 'Synthetic resume.',
+    analyzer: {
+      async analyze(_input, { signal }) {
+        timeoutSignal = signal;
+        const error = new Error('provider details must not escape');
+        error.name = 'TimeoutError';
+        throw error;
+      },
+    },
+  }));
+  await new Promise((resolve) => timeoutServer.listen(0, '127.0.0.1', resolve));
+  let timedOut;
+  try {
+    timedOut = await fetch(`http://127.0.0.1:${timeoutServer.address().port}/api/v1/analyses`, {
+      method: 'POST', body: uploadForm(),
+    });
+  } finally {
+    AbortSignal.timeout = originalTimeout;
+  }
+  const timeoutPayload = await timedOut.json();
+  assert.equal(timedOut.status, 504);
+  assert.equal(timeoutPayload.error.code, 'ANALYSIS_TIMEOUT');
+  assert.doesNotMatch(JSON.stringify(timeoutPayload), /provider details/);
+  assert.ok(timeoutSignal instanceof AbortSignal);
+  assert.equal(requestedTimeout, 35_000);
+  await new Promise((resolve) => timeoutServer.close(resolve));
+
+  const rateLimitServer = createServer(createApp({
+    textExtractor: async () => 'Synthetic resume.',
+    analyzer: {
+      async analyze() {
+        const error = new Error('provider details must not escape');
+        error.status = 429;
+        throw error;
+      },
+    },
+  }));
+  await new Promise((resolve) => rateLimitServer.listen(0, '127.0.0.1', resolve));
+  const busy = await fetch(`http://127.0.0.1:${rateLimitServer.address().port}/api/v1/analyses`, {
+    method: 'POST', body: uploadForm(),
+  });
+  const busyPayload = await busy.json();
+  assert.equal(busy.status, 503);
+  assert.equal(busyPayload.error.code, 'ANALYSIS_BUSY');
+  assert.doesNotMatch(JSON.stringify(busyPayload), /provider details/);
+  await new Promise((resolve) => rateLimitServer.close(resolve));
+});
+
 test('missing OpenAI key returns actionable setup steps without exposing credentials', async () => {
   const missingKeyServer = createServer(createApp({
     textExtractor: async () => 'Synthetic resume.',

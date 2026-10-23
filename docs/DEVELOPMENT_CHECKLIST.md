@@ -6,14 +6,14 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Current progress
 
-- **Completed:** 1.2–1.6, 2.2–2.6, 3.1–3.7, 4.1, 4.3, 4.4, 4.6, 4.8, 5.1, 5.6, 5.7, 5.9, 6.1–6.7, 7.2–7.4, 7.8, 9.1, 9.2, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item. The merged local-workflow branch also provides pasted-text rule checks and a separate metadata-only local file-selection preview.
-- **In progress:** 2.1 — a draft flow is represented in the prototype, but the team has not confirmed it. Item 2.7 is waiting for team review.
-- **Next:** Add a developer-owned OpenAI API key locally, restart the backend with it, then verify a real analysis request. Synthetic PDF/DOCX extraction and full upload flow on Android remain to be checked.
-- **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Clean `npm ci`, extraction against synthetic documents, live provider execution, full Android analysis, and GitHub CI are not verified.
+- **Completed:** 1.1–1.6, 2.2–2.6, 3.1–3.7, 4.1, 4.3–4.8, 5.1, 5.6–5.9, 6.1–6.7, 7.2–7.4, 7.8, 9.1, 9.2, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item. The merged local-workflow branch also provides pasted-text rule checks and a separate metadata-only local file-selection preview.
+- **In progress:** 2.7 — screen review is waiting for team feedback.
+- **Next:** Have another teammate verify a fresh clone and setup (item 1.7). After that, add a developer-owned OpenAI API key locally and verify one intentional analysis request; the full upload flow on Android remains to be checked.
+- **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Clean `npm ci`, live provider execution, full Android analysis, and GitHub CI are not verified.
 
 ## Phase 1: Project Foundation
 
-- [ ] 1.1 — Confirm the Flutter app runs from the repository root.
+- [x] 1.1 — Confirm the Flutter app runs from the repository root. *(Built and launched on Pixel 7 emulator on 22 October 2026; the foreground app was `com.example.airesume/.MainActivity`, and the Android UI hierarchy showed the integrated home screen and its connected, paste, and local file-selection actions.)*
 - [x] 1.2 — Verify Flutter formatting, static analysis, and tests pass. *(Verified locally: Dart format check, `flutter analyze`, and `flutter test` passed.)*
 - [x] 1.3 — Review and finalize the folder structure. *(Root Flutter app, `backend/`, `docs/`, and `.github/workflows/` are present and reviewed.)*
 - [x] 1.4 — Establish a consistent theme, colors, typography, and reusable UI components. *(Implemented in `lib/theme/app_theme.dart`; shared color tokens, Material 3 styles, card and button styles are consumed by the app. `AppScrollBehavior` also removes edge stretching while retaining platform scrolling.)*
@@ -23,7 +23,7 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Phase 2: Define the User Experience
 
-- [ ] 2.1 — Finalize the primary user workflow.
+- [x] 2.1 — Finalize the primary user workflow. *(Using the user's direction to proceed without design preferences: choose a resume, acknowledge provider processing, optionally enter a target role, analyze, view structured feedback, and retry safe failures; paste-text and metadata-only local selection remain secondary options.)*
 - [x] 2.2 — Design the home screen and resume-analysis entry point. *(Home screen and connected, pasted-text, and local-selection entry points are implemented and covered by widget tests; team review is still needed.)*
 - [x] 2.3 — Design the resume selection and upload screen. *(Selection screen provides metadata, optional target role, processing consent, and connected upload.)*
 - [x] 2.4 — Design the analysis progress screen. *(Shows active upload/analysis progress and completion or failure states.)*
@@ -47,10 +47,10 @@ Use this checklist as the team's source of truth for building the application. W
 - [x] 4.2 — Configure backend environment variables and local development instructions. *(Node's `--env-file-if-exists` loaded a temporary sentinel env file; `.env` is ignored by Git; README documents local key setup and restart steps. No real key was used.)*
 - [x] 4.3 — Implement and test resume upload handling. *(In-memory multipart upload success, missing file, unsupported extension, and oversized file cases pass mocked API tests.)*
 - [x] 4.4 — Validate uploaded files on the server. *(Extension/signature rejection and the 10 MiB limit pass tests; extracted text is capped at 100,000 characters.)*
-- [ ] 4.5 — Implement text extraction for supported resume formats. *(PDF and DOCX extraction implemented in source; verification pending.)*
+- [x] 4.5 — Implement text extraction for supported resume formats. *(Verified both extractors using generated, text-only PDF and DOCX documents; no real resume or provider request was used.)*
 - [x] 4.6 — Handle scanned PDFs and unsupported documents appropriately. *(Unsupported types and PDFs without extractable text return explicit errors; route behavior is tested. OCR is not implemented.)*
-- [ ] 4.7 — Add consistent API errors, request limits, and timeouts. *(Shared JSON errors, upload/text limits, SDK request timeout, and route timeout are implemented; verification pending.)*
-- [x] 4.8 — Test the backend independently of the Flutter application. *(Verified locally: `npm run check` and all ten `npm test` API/unit tests passed. `npm install` reports the lockfile is up to date; clean `npm ci` has not been run.)*
+- [x] 4.7 — Add consistent API errors, request limits, and timeouts. *(Backend suite verifies shared error responses, malformed/oversized inputs, the 10 MiB upload limit, 35-second route timeout signal, and timeout/rate-limit mappings.)*
+- [x] 4.8 — Test the backend independently of the Flutter application. *(Verified locally: `npm run check` and all eleven `npm test` API/unit tests passed. `npm install` reports the lockfile is up to date; clean `npm ci` has not been run.)*
 
 ## Phase 5: AI Resume Analysis
 
@@ -61,8 +61,8 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 5.5 — Implement the server-side AI request. *(OpenAI Responses API adapter implemented; live call not made.)*
 - [x] 5.6 — Validate the AI response against a defined schema. *(Structured output schema and server-side Zod validation are implemented; malformed analysis results return a tested safe error.)*
 - [x] 5.7 — Return actionable feedback, strengths, weaknesses, and improvement suggestions. *(Mocked success returns summary, evidence-backed strengths/improvements, and missing information; no numeric score.)*
-- [ ] 5.8 — Handle provider errors, rate limits, invalid responses, and timeouts. *(Safe mappings implemented; runtime verification pending.)*
-- [x] 5.9 — Add automated tests using mocked AI responses. *(All ten backend tests pass; provider requests are injected/mocked and no live calls are made.)*
+- [x] 5.8 — Handle provider errors, rate limits, invalid responses, and timeouts. *(Mocked API tests verify safe responses for missing configuration, rate limiting, invalid results, and timeouts; no live provider request was made.)*
+- [x] 5.9 — Add automated tests using mocked AI responses. *(All eleven backend tests pass; provider requests are injected/mocked and no live calls are made.)*
 - [ ] 5.10 — Evaluate the results with sample or synthetic resumes before release.
 
 ## Phase 6: Connect Flutter to the Backend
@@ -89,8 +89,8 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Phase 8: Security and Privacy
 
-- [ ] 8.1 — Confirm API credentials are never included in the mobile app.
-- [ ] 8.2 — Avoid logging resume contents or unnecessary personal information.
+- [x] 8.1 — Confirm API credentials are never included in the mobile app. *(Flutter source only contains the environment-variable name in setup guidance; the provider adapter reads the key from the backend environment. Tracked-file scan found no key.)*
+- [x] 8.2 — Avoid logging resume contents or unnecessary personal information. *(Source scan found only backend startup/configuration status logs; no resume text, uploads, or personal details are logged.)*
 - [ ] 8.3 — Define whether uploaded resumes and analysis results are stored.
 - [ ] 8.4 — Implement appropriate retention and deletion behavior if storage is used.
 - [ ] 8.5 — Verify upload validation and backend request limits.
@@ -101,9 +101,9 @@ Use this checklist as the team's source of truth for building the application. W
 
 - [x] 9.1 — Add Flutter unit tests for models and services. *(Checker, file-picker, and API-client tests pass as part of the Flutter suite.)*
 - [x] 9.2 — Add widget tests for the main screens and interactions. *(Connected selection, paste checks, local file selection, scrolling, and feedback states are covered by passing widget tests.)*
-- [ ] 9.3 — Add backend unit and API integration tests.
-- [ ] 9.4 — Test invalid uploads, network failures, and AI provider errors.
-- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 22 October 2026: Dart format check, `flutter pub get`, Flutter analysis, all 37 Flutter tests (one opt-in URL override test skipped by default), backend syntax check, and all ten backend tests passed. URL override has a separate passing targeted test.)*
+- [x] 9.3 — Add backend unit and API integration tests. *(Eleven backend tests pass, covering extraction signature validation and API health, upload, provider, limits, and error responses.)*
+- [x] 9.4 — Test invalid uploads, network failures, and AI provider errors. *(Backend tests cover unsupported/oversized uploads and provider errors; Flutter API-client tests cover unreachable-server and provider-failure messages.)*
+- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 22 October 2026: Dart format check, `flutter pub get`, Flutter analysis, all 38 Flutter tests (one opt-in URL override test skipped by default), backend syntax check, and all eleven backend tests passed. URL override has a separate passing targeted test.)*
 - [ ] 9.6 — Build a release-mode Android APK.
 - [ ] 9.7 — Perform end-to-end testing on a real device or emulator.
 - [ ] 9.8 — Have a teammate test the app using the documented setup guide.
@@ -136,12 +136,12 @@ Do not mark planned features as completed. If a task is blocked, record the bloc
 ## Dependencies and acceptance gates
 
 - **Foundation (Phase 1):** Use the [setup checklist](SETUP_CHECKLIST.md) first. Phase 1.1 is accepted after `flutter run` from the repository root reaches the home screen on an emulator or device. Phase 1.7 requires a teammate to complete a fresh clone/setup/run without relying on this machine's local paths.
-- **Workflow and input (Phases 2–3):** Get team agreement on 2.1 and screen review 2.7. Phase 3 implements PDF/DOCX selection up to 10 MiB for both the connected analysis path and the metadata-only preview; confirm that policy. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
-- **Backend processing (Phase 4):** Backend upload/extraction/API source and mocked tests are implemented. Clean dependency installation and PDF/DOCX extraction against synthetic files remain to be verified. Complete authentication, retention/deletion, provider data handling, and deployment controls before production use.
+- **Workflow and input (Phases 2–3):** The user approved proceeding with the default 2.1 workflow; screen review 2.7 still needs team feedback. Phase 3 implements PDF/DOCX selection up to 10 MiB for both the connected analysis path and the metadata-only preview; confirm that policy. Acceptance includes filename/details, replace/remove, validation, cancellation/error behavior, and widget tests.
+- **Backend processing (Phase 4):** Backend upload/extraction/API source and mocked tests are implemented. PDF/DOCX extraction passed with synthetic files. Clean dependency installation remains to be verified. Complete authentication, retention/deletion, provider data handling, and deployment controls before production use.
 - **AI analysis (Phase 5):** Default criteria and a configurable OpenAI Responses implementation are in source. Keep credentials server-side. Verify with mocked provider responses and synthetic resumes; do not use live resumes until privacy/data decisions are complete.
 - **Flutter integration and results (Phases 6–7):** The connected upload, progress, response parsing, retry, results display, and mocked success/error UI coverage are implemented and locally tested. Android emulator/device verification remains open.
 - **Security and release (Phases 8–10):** Resolve privacy and retention decisions before live resume processing. Release acceptance requires passing local checks, Android device/emulator end-to-end verification, a teammate setup run, and an observed GitHub Actions run. Local CI-equivalent commands do not prove that GitHub CI passed.
 
 ## First incomplete task
 
-**1.1 — Confirm the Flutter app runs from the repository root.** The app was launched on the Pixel 7 emulator before this merge; verify the integrated home screen again on the emulator before checking this item. Task 1.7 also needs another teammate to complete the documented fresh-clone setup and run.
+**1.7 — Verify the project can be cloned and run by another team member.** This requires a teammate to follow the documented setup on a fresh checkout. The integrated app home screen has now been verified on the Pixel 7 emulator for item 1.1.

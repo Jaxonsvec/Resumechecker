@@ -1,6 +1,6 @@
 # Airesume
 
-A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls a server-configured OpenAI model. Provider keys stay on the backend, never in Flutter. Flutter integration tests use mocks; real document extraction and a live provider request are not verified in this environment.
+A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls a server-configured OpenAI model. Provider keys stay on the backend, never in Flutter. Flutter integration tests use mocks; synthetic text-only PDF/DOCX extraction is verified, but a live provider request is not.
 
 ## Start here
 

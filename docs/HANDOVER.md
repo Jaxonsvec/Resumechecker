@@ -14,7 +14,7 @@ The Flutter app requests explicit processing consent, uploads the selected PDF/D
 - **Backend:** `backend/` is an Express 5 / Zod 4 API. `GET /health` reports service status. `POST /api/v1/analyses` accepts one multipart `resume` file (PDF or DOCX, up to 10 MiB) and optional `targetRole` (up to 200 characters), validates extension/signature/size, extracts text in memory, and calls an injected analyzer. Extracted text is limited to 100,000 characters. Files are not written to disk or logged by application code. PDFs without embedded text return an explicit error; OCR is not implemented.
 - **Provider:** `backend/src/providers/resume_analyzer.js` uses OpenAI Responses API with structured output and a configurable `OPENAI_MODEL` default. OpenAI's model page lists `gpt-5.6-terra` as supporting Responses and Structured Outputs. It reads `OPENAI_API_KEY` only on the backend, uses `store: false`, and has a 30-second SDK timeout. No real key or model call was used. Output has summary, evidence-based strengths and improvements, and missing-information notes; no numeric score or hiring prediction.
 - **Configuration:** `npm start` runs Node's `--env-file-if-exists=.env` from `backend/`; this was verified with a temporary sentinel value and no real secret. `backend/.gitignore` excludes `.env`; no local `backend/.env` exists. Keep keys out of Flutter and Android.
-- **Tests and dependencies:** `npm install` succeeded and reported the lockfile up to date; `npm run check` and all ten backend tests pass. During this merge, `flutter pub get` resolved the union of `file_picker`, `file_selector`, and `http`; `flutter analyze` passed and all 37 Flutter tests passed (one opt-in API override test is skipped unless its define is supplied). Clean `npm ci` was not run. No commit is authorized.
+- **Tests and dependencies:** `npm install` succeeded and reported the lockfile up to date; `npm run check` and all eleven backend tests pass. Tests cover shared API errors, upload limits, the route timeout signal, and safe timeout/rate-limit mappings. Synthetic text-only PDF and DOCX documents both extracted their expected text through the production extractor. During this merge, `flutter pub get` resolved the union of `file_picker`, `file_selector`, and `http`; `flutter analyze` passed and all 38 Flutter tests passed (one opt-in API override test is skipped unless its define is supplied). Clean `npm ci` was not run. No commit is authorized.
 - **Privacy/production:** Authentication, consent, retention/deletion, provider data handling, and deployment controls remain open before processing real resumes in production. `store: false` does not replace a review of current provider terms and project privacy requirements.
 - **CI:** `.github/workflows/flutter.yml` runs Flutter and backend CI on pushes and pull requests. GitHub Actions has not been observed for this branch.
 
@@ -52,16 +52,17 @@ npm start
 
 ## Verification record
 
-**Verified locally on 22 October 2026:** `npm install` (up to date, zero audit findings), `npm run check`, ten backend tests, Dart formatting, `flutter pub get`, `flutter analyze`, all 37 Flutter tests (one opt-in API override test skipped in the default run), and a separate passing `API_BASE_URL` override test. A test confirmed Node loads env files without printing their values. `git check-ignore` confirms `backend/.env` is ignored. Windows and Android emulator both reached the host health endpoint; emulator request to `http://10.0.2.2:3000/health` returned `{"status":"ok"}`.
+**Verified locally on 22 October 2026:** `npm install` (up to date, zero audit findings), `npm run check`, eleven backend tests, Dart formatting, `flutter pub get`, `flutter analyze`, all 38 Flutter tests (one opt-in API override test skipped in the default run), and a separate passing `API_BASE_URL` override test. A test confirmed Node loads env files without printing their values. `git check-ignore` confirms `backend/.env` is ignored. Windows and Android emulator both reached the host health endpoint; emulator request to `http://10.0.2.2:3000/health` returned `{"status":"ok"}`. After the merge, the current app also built, installed, and launched on Pixel 7; the resumed activity and Android UI hierarchy confirmed the integrated home screen and its connected analysis, pasted-text, and local file-selection actions.
 
-**Not verified:** `npm ci`, PDF/DOCX extraction against synthetic documents, live OpenAI credentials/provider request, full Android upload/analysis flow, and GitHub CI. The active port 3000 listener was already running; a second `npm start` reported `EADDRINUSE`, so preserve that process and restart it from the intended terminal after setting a developer-owned key.
+**Not verified:** `npm ci`, live OpenAI credentials/provider request, full Android upload/analysis flow, and GitHub CI. The active port 3000 listener was already running; a second `npm start` reported `EADDRINUSE`, so preserve that process and restart it from the intended terminal after setting a developer-owned key.
 
 ## Next steps
 
-1. Add the developer's own `OPENAI_API_KEY` to the backend process environment or ignored `backend/.env`, restart the server, and verify one intentional test analysis. Never paste the key into Flutter or commit it.
-2. Verify PDF/DOCX extraction with synthetic documents and finish the full upload flow on the emulator.
-3. Run `npm ci` from the current lockfile, then inspect GitHub CI separately.
-4. Resolve authentication, retention/deletion, provider data handling, and production deployment decisions before production use.
+1. Have another teammate follow the fresh-clone setup and confirm the app runs (checklist item 1.7).
+2. Add the developer's own `OPENAI_API_KEY` to the backend process environment or ignored `backend/.env`, restart the server, and verify one intentional test analysis. Never paste the key into Flutter or commit it.
+3. Finish the full upload flow on the emulator.
+4. Run `npm ci` from the current lockfile, then inspect GitHub CI separately.
+5. Resolve authentication, retention/deletion, provider data handling, and production deployment decisions before production use.
 
 ## Keeping the handover current
 

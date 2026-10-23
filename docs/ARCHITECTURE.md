@@ -9,9 +9,11 @@ Airesume is a Flutter application at the repository root. The Android app is the
 - The Express backend accepts a PDF/DOCX multipart upload at `POST /api/v1/analyses`, checks the file signature and size, extracts text in memory, and calls an injectable analyzer. The default analyzer sends the extracted text to OpenAI using a structured response schema. Uploads and extracted text are not stored by the application.
 - The analysis response contains a summary, evidence-backed strengths and improvements, and missing-information notes. It intentionally contains no numeric score. The server prompt directs the model not to invent facts or infer protected traits.
 - Automated tests use fake extraction/analyzer implementations and never make live provider requests. `flutter pub get` resolved both file-selection plugins during this merge without upgrading the existing Flutter dependencies; backend `npm ci` remains unverified.
-- The file-selector preview is separate from the connected `file_picker` workflow. Avoid describing local selection as an upload or as evidence of file parsing. A real provider request has not been made; document extraction and full end-to-end behavior still need synthetic-file/emulator verification.
+- The file-selector preview is separate from the connected `file_picker` workflow. Avoid describing local selection as an upload or as evidence of file parsing. Synthetic text-only PDF and DOCX extraction has been verified; a real provider request and full on-device analysis have not been made.
 
 ## End-to-end flow
+
+The primary workflow is file-based analysis. Following the user's direction to use sensible defaults without blocking on visual preferences, the home screen presents **Choose a resume** as the connected path, with pasted-text checks and local metadata preview as separate alternatives.
 
 1. Flutter selects a PDF or DOCX resume up to 10 MiB, may provide a target role, and requires acknowledgment that resume text will go to the configured AI service.
 2. The app uploads the file through its reusable multipart API client and displays progress while the request runs.
