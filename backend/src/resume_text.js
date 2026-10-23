@@ -30,6 +30,12 @@ export async function extractResumeText(file) {
         );
       }
       return text;
+    } catch (error) {
+      if (error instanceof ResumeFileError) throw error;
+      throw new ResumeFileError(
+        'INVALID_FILE',
+        'The PDF could not be read. It may be corrupt or password-protected.',
+      );
     } finally {
       await parser.destroy();
     }

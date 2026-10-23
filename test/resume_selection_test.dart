@@ -144,6 +144,20 @@ void main() {
     tester,
   ) async {
     final result = ResumeAnalysis(
+      overallScore: 80,
+      categoryScores: {
+        for (final key in [
+          'clarity',
+          'impact',
+          'measurable_results',
+          'skills_experience',
+          'formatting_organization',
+        ])
+          key: const ResumeCategoryScore(
+            score: 80,
+            explanation: 'Clear and supported.',
+          ),
+      },
       summary: 'A focused resume with relevant experience.',
       strengths: const [
         ResumeStrength(title: 'Leadership', evidence: 'Led a team of four.'),
@@ -156,6 +170,8 @@ void main() {
         ),
       ],
       missingInformation: const ['Education details'],
+      suggestedRewrites: const [],
+      jobRelevance: null,
     );
     final api = _FakeResumeAnalysisApi([
       const ResumeAnalysisException('The analysis server is unavailable.'),
@@ -186,6 +202,11 @@ void main() {
     expect(
       find.text('A focused resume with relevant experience.'),
       findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('Led a team of four.'),
+      250,
+      scrollable: find.byType(Scrollable).last,
     );
     expect(find.textContaining('Led a team of four.'), findsOneWidget);
     expect(
@@ -267,4 +288,10 @@ class _FakeResumeAnalysisApi implements ResumeAnalysisApi {
     if (response is Exception) throw response;
     return response as ResumeAnalysis;
   }
+
+  @override
+  Future<ResumeAnalysis> analyzeText({
+    required String resumeText,
+    String? targetRole,
+  }) async => throw UnimplementedError();
 }

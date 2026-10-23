@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../models/resume_analysis.dart';
 import '../theme/app_theme.dart';
 import '../widgets/workflow_components.dart';
+import 'resume_comparison_screen.dart';
+import 'resume_editor_screen.dart';
 
-class AnalysisResultsScreen extends StatelessWidget {
+class AnalysisResultsScreen extends StatefulWidget {
   const AnalysisResultsScreen({
     super.key,
     required this.result,
@@ -15,7 +17,34 @@ class AnalysisResultsScreen extends StatelessWidget {
   final String resumeName;
 
   @override
+  State<AnalysisResultsScreen> createState() => _AnalysisResultsScreenState();
+}
+
+class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
+  late ResumeAnalysis _result;
+  late final String _originalResumeText;
+  String _workingText = '';
+  final List<ResumeAnalysis> _assessmentHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _result = widget.result;
+    _workingText = widget.result.sourceResumeText;
+    _originalResumeText = widget.result.sourceResumeText;
+  }
+
+  void _updateWorkingText(String text) => setState(() => _workingText = text);
+
+  void _updateAnalysis(ResumeAnalysis analysis) => setState(() {
+    _assessmentHistory.add(_result);
+    _result = analysis;
+    _workingText = analysis.sourceResumeText;
+  });
+
+  @override
   Widget build(BuildContext context) {
+    final result = _result;
     return Scaffold(
       appBar: AppBar(title: const Text('Resume feedback')),
       body: SafeArea(
@@ -33,7 +62,7 @@ class AnalysisResultsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Based on $resumeName',
+                  'Based on ${widget.resumeName}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 20),
@@ -42,6 +71,60 @@ class AnalysisResultsScreen extends StatelessWidget {
                   title: 'Overall feedback',
                   body: result.summary,
                 ),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Resume score: ${result.overallScore}/100',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const Text(
+                          'Assessment tool only; this score does not predict hiring success or ATS performance.',
+                        ),
+                        for (final entry in result.categoryScores.entries)
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(_categoryLabel(entry.key)),
+                            subtitle: Text(entry.value.explanation),
+                            trailing: Text('${entry.value.score}/100'),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (result.jobRelevance case final relevance?)
+                  _ResultSection(
+                    icon: Icons.work_outline,
+                    title: 'Job relevance: ${relevance.score}/100',
+                    children: [
+                      Text(
+                        'Relevant skills: ${relevance.relevantSkills.join(', ').ifEmpty('None identified')}',
+                      ),
+                      Text(
+                        'Missing skills: ${relevance.missingSkills.join(', ').ifEmpty('None identified')}',
+                      ),
+                      Text(
+                        'Transferable skills: ${relevance.transferableSkills.join(', ').ifEmpty('None identified')}',
+                      ),
+                    ],
+                  ),
+                if (result.suggestedRewrites.isNotEmpty)
+                  _ResultSection(
+                    icon: Icons.auto_fix_high_outlined,
+                    title: 'Suggested rewrites',
+                    children: [
+                      for (final rewrite in result.suggestedRewrites)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '${rewrite.section}\nBefore: ${rewrite.originalText}\nSuggested: ${rewrite.revisedText}\nWhy: ${rewrite.rationale}',
+                          ),
+                        ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 _ResultSection(
                   icon: Icons.thumb_up_alt_outlined,
@@ -100,6 +183,66 @@ class AnalysisResultsScreen extends StatelessWidget {
                   style: TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 20),
+                if (_assessmentHistory.isNotEmpty)
+                  _ResultSection(
+                    icon: Icons.compare_arrows,
+                    title: 'Regrade history',
+                    children: [
+                      Text(
+                        'Original extracted text remains available separately from the working revision.',
+                      ),
+                      for (
+                        var index = 0;
+                        index < _assessmentHistory.length;
+                        index++
+                      )
+                        Text(
+                          'Assessment ${index + 1}: ${_assessmentHistory[index].overallScore}/100',
+                        ),
+                      Text('Current assessment: ${result.overallScore}/100'),
+                    ],
+                  ),
+                ExpansionTile(
+                  title: const Text('View original extracted text'),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SelectableText(_originalResumeText),
+                    ),
+                  ],
+                ),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ResumeEditorScreen(
+                        initialAnalysis: result,
+                        initialText: _workingText,
+                        previousAssessments: _assessmentHistory,
+                        onWorkingTextChanged: _updateWorkingText,
+                        onRegraded: _updateAnalysis,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit Resume'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ResumeComparisonScreen(
+                        userAnalysis: result,
+                        workingText: _workingText,
+                        previousAssessments: _assessmentHistory,
+                        onWorkingTextChanged: _updateWorkingText,
+                        onRegraded: _updateAnalysis,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.compare_arrows),
+                  label: const Text('Compare with Example'),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () =>
                       Navigator.of(context).popUntil((route) => route.isFirst),
@@ -113,6 +256,18 @@ class AnalysisResultsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+String _categoryLabel(String key) => switch (key) {
+  'clarity' => 'Clarity and readability',
+  'impact' => 'Impact and achievements',
+  'measurable_results' => 'Measurable results',
+  'skills_experience' => 'Skills and experience',
+  _ => 'Formatting and organization',
+};
+
+extension on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }
 
 class _ResultSection extends StatelessWidget {

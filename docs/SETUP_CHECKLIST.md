@@ -31,6 +31,7 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
   ```
 
 - [ ] Run `flutter pub get` from the repository root.
+- [ ] Image upload/OCR uses `image_picker` plus on-device Google ML Kit text recognition. Its Flutter integration is available on Android/iOS only; no OCR cloud service or credential is required.
 - [ ] If contributing to the backend on this branch, run `npm install` from `backend/` to resolve the new dependencies and refresh `package-lock.json`; once refreshed, use `npm ci` for subsequent clean installs.
 - [ ] Do not run broad dependency upgrades as part of routine setup. Keep `pubspec.lock` and `backend/package-lock.json` in sync with intentional dependency changes.
 

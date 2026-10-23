@@ -6,11 +6,11 @@ Use this checklist as the team's source of truth for building the application. W
 
 ## Current progress
 
-- **Task count:** 66 checklist items are complete and 15 remain open.
-- **Completed:** 1.1–1.6, 2.1–2.6, 3.1–3.7, 4.1–4.8, 5.1–5.9, 6.1–6.7, 7.1–7.4, 7.8, 8.1–8.3, 8.5–8.7, 9.1–9.6, and 10.1–10.7. Evidence is noted beside each checked item. The merged local-workflow branch also provides pasted-text rule checks and a separate metadata-only local file-selection preview.
+- **Task count:** 74 checklist items are complete and 15 remain open, including the new resume-improvement work in Phase 11.
+- **Completed:** 1.1–1.6, 2.1–2.6, 3.1–3.7, 4.1–4.8, 5.1–5.9, 6.1–6.7, 7.1–7.4, 7.8, 8.1–8.3, 8.5–8.7, 9.1–9.7, and 10.1–10.7. Evidence is noted beside each checked item. The merged local-workflow branch also provides pasted-text rule checks and a separate metadata-only local file-selection preview.
 - **In progress:** 2.7 — screen review is waiting for team feedback.
-- **Next:** Have another teammate verify a fresh clone/setup (1.7) and review the screens (2.7). A developer-owned API key is needed for a live request. The Pixel 7 AVD must come online before completing the on-device upload flow.
-- **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Live provider execution, full Android analysis, retention/cache policy, teammate review, and final acceptance remain open. GitHub CI passed for commit `bf7d895`; local uncommitted changes are not included in that run.
+- **Next:** Have another teammate verify a fresh clone/setup (1.7) and review the screens (2.7). The local Ollama provider completed a synthetic live score-schema request; a live OpenAI request still needs a developer-owned API key. The Pixel 7 AVD must come online before device end-to-end verification.
+- **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Device OCR/upload flow, retention/cache policy, teammate review, and final acceptance remain open. GitHub CI passed for committed code before this local change; it does not cover the current working tree.
 
 ## Phase 1: Project Foundation
 
@@ -104,9 +104,9 @@ Use this checklist as the team's source of truth for building the application. W
 - [x] 9.2 — Add widget tests for the main screens and interactions. *(Connected selection, paste checks, local file selection, scrolling, and feedback states are covered by passing widget tests.)*
 - [x] 9.3 — Add backend unit and API integration tests. *(Thirteen backend tests pass, covering extraction, provider request construction, API health, uploads, limits, and error responses.)*
 - [x] 9.4 — Test invalid uploads, network failures, and AI provider errors. *(Backend tests cover unsupported/oversized uploads and provider errors; Flutter API-client tests cover unreachable-server and provider-failure messages.)*
-- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 23 October 2026: repository-wide Dart format check, `flutter pub get`, Flutter analysis, all 38 Flutter tests (one opt-in URL override test skipped by default), backend syntax check, and all thirteen backend tests passed.)*
+- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 23 October 2026: repository-wide Dart format check, Flutter analysis, all 49 Flutter tests (one opt-in URL override test skipped by default), backend syntax check, and all 21 backend tests passed.)*
 - [x] 9.6 — Build a release-mode Android APK. *(Built successfully with Flutter 3.47.7; output is `build/app/outputs/flutter-apk/app-release.apk`.)*
-- [ ] 9.7 — Perform end-to-end testing on a real device or emulator.
+- [x] 9.7 — Perform end-to-end testing on a real device or emulator. *(Android emulator verified gallery selection, on-device ML Kit OCR for a synthetic resume image, consent, and successful analysis through the local Express backend and qwen3:8b Ollama provider. PDF/DOCX upload and editor/regrade device flows remain open under 6.8 and 11.8.)*
 - [ ] 9.8 — Have a teammate test the app using the documented setup guide.
 - [ ] 9.9 — Resolve release-blocking defects.
 
@@ -122,6 +122,17 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 10.8 — Review outstanding tasks and known limitations with the team.
 - [ ] 10.9 — Complete final acceptance testing.
 - [ ] 10.10 — Prepare the final demonstration and project submission.
+
+## Phase 11: Resume rating and improvement features
+
+- [x] 11.1 — Define and validate the shared five-category scoring rubric and derived overall score. *(The backend derives the overall score from the five bounded category scores; Dart validates all score bounds and the same arithmetic mean. Rubric documented in `SCORING_RUBRIC.md`.)*
+- [x] 11.2 — Return evidence-based score explanations, optional job relevance, and factual rewrite suggestions through OpenAI and Ollama. *(Mocked OpenAI/Ollama tests pass. A real local qwen3:8b text API request returned 200 with five scores, rewrites, and job relevance using synthetic text.)*
+- [x] 11.3 — Add five fictional local resume examples with rubric-consistent precomputed scores. *(Flutter model/widget tests validate five entries, fictional labels, score bounds, and average calculation.)*
+- [x] 11.4 — Add resume-to-example category comparison and guidance that avoids copying fictional claims. *(Widget test covers category comparison, results suggestions, and editor navigation.)*
+- [x] 11.5 — Add an editable working revision, individual suggestion decisions, explicit regrade consent, text-based reanalysis, and score history. *(Widget tests verify accept/reject, exact revised text sent to the API, score delta, and draft retention while navigating.)*
+- [x] 11.6 — Add local JPG/PNG OCR with editable preview, empty/error handling, and shared analysis submission. *(Uses on-device ML Kit on Android/iOS; mocked widget tests cover extracted text editing and no-text handling. On the Android emulator, a synthetic image was OCR’d, reviewed, consented, and analyzed successfully through local Ollama.)*
+- [x] 11.7 — Verify Flutter/backend tests, analysis, Android debug build, and provider schema behavior after the expansion. *(Final results recorded in `HANDOVER.md`; 49 Flutter tests, 21 backend tests, analysis, format check, debug APK build, and local model responses passed.)*
+- [ ] 11.8 — Complete emulator/device end-to-end tests for document upload, image OCR, editing, and regrading.
 
 ## Definition of Done
 

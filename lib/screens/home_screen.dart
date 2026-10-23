@@ -4,6 +4,8 @@ import '../resume_upload_screen.dart';
 import 'resume_input_screen.dart';
 import '../theme/app_theme.dart';
 import 'resume_selection_screen.dart';
+import 'resume_examples_screen.dart';
+import 'resume_image_input_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -92,6 +94,26 @@ class HomeScreen extends StatelessWidget {
                   ),
                   icon: const Icon(Icons.folder_open_outlined),
                   label: const Text('Select a file locally'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ResumeExamplesScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: const Text('Resume Examples'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ResumeImageInputScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Upload a resume picture'),
                 ),
                 const SizedBox(height: 12),
                 const Text(

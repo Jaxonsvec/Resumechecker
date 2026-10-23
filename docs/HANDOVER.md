@@ -1,71 +1,69 @@
 # Airesume project handover
 
-Updated 23 October 2026. This describes the current checkout and separates implemented source from verified behavior.
+Updated 23 October 2026. This handover describes the current local checkout and distinguishes implementation from verified behavior.
 
-## Purpose and status
+## Current state
 
-Airesume is a Flutter-first app for AI-assisted resume feedback. Phase 3 selection, the Phase 4/5 backend analyzer, and the Phase 6 Flutter upload/result workflow are implemented in source on `codex/phase-3-resume-input`. The backend supports OpenAI (default) and local Ollama selected by `AI_PROVIDER`; no provider key is required for local Ollama. The backend dependency update to OpenAI SDK 6.49.0 and the existing Zod 4 dependency are reflected in `package-lock.json`. Backend checks/tests and local Flutter checks pass. Existing uncommitted sprint changes were preserved; do not commit or push without authorization.
+Airesume is a Flutter resume-analysis app with a Node.js/Express backend. Current work is on `codex/phase-3-resume-input`. The working tree contains uncommitted implementation changes for the resume scoring, examples, compare/edit/regrade, image OCR, and Ollama support phases. Do not reset, clean, or overwrite these changes; do not commit or push without authorization.
 
-The Flutter app requests explicit processing consent, uploads the selected PDF/DOCX and optional target role, shows a loading state, parses structured feedback, and supports retry after safe errors. It also retains the pasted-text path, which uses local rule-based checks, and its standalone native file-selection preview, which only displays metadata and is not an upload. `backend/.env` is absent and ignored by Git. `AI_PROVIDER` is not set in this checkout, so the default OpenAI provider remains unconfigured without `OPENAI_API_KEY`. Local Ollama was installed and a synthetic analysis through the API route succeeded with `qwen3:8b`; the test used an injected synthetic text extractor, not a personal resume. A successful `/health` response only confirms the server is listening, not that the provider is configured.
+The app supports PDF/DOCX selection and backend analysis, pasted-text local checks, local fictional examples, score/category comparison, an editable draft with accepted/rejected rewrite suggestions and regrading, and JPG/PNG image resume input. Image OCR uses ML Kit on-device (Android/iOS); it is not a cloud OCR call. The backend supports OpenAI and local Ollama through `AI_PROVIDER`. Ollama can run without an OpenAI key. No OpenAI key is configured and no OpenAI or Ollama Cloud request was made.
 
-## Current architecture
+**Current demo session:** `emulator-5554` is open on the analysis results screen. The app was launched with `API_BASE_URL=http://10.0.2.2:3001`; the current checkout's local Ollama backend is running on Windows port 3001 so another analysis can be tried. A pre-existing server on port 3000 was left untouched.
 
-- **Flutter:** The app lives at the repository root. `lib/screens/resume_selection_screen.dart` selects PDF/DOCX files up to 10 MiB, requests processing consent, and gathers an optional target role. `lib/services/resume_analysis_api.dart` sends the multipart upload to `POST /api/v1/analyses`; progress, retryable errors, and structured result screens are implemented. `lib/screens/resume_input_screen.dart` accepts pasted text for local `ResumeChecker` feedback. `lib/resume_upload_screen.dart` is the separate file-selector preview only; it does not submit files. The API base URL can be set with `--dart-define=API_BASE_URL=...`.
-- **Backend:** `backend/` is an Express 5 / Zod 4 API. `GET /health` reports service status. `POST /api/v1/analyses` accepts one multipart `resume` file (PDF or DOCX, up to 10 MiB) and optional `targetRole` (up to 200 characters), validates extension/signature/size, extracts text in memory, and calls an injected analyzer. Extracted text is limited to 100,000 characters. Files are not written to disk or logged by application code. PDFs without embedded text return an explicit error; OCR is not implemented.
-- **Provider:** `AI_PROVIDER=openai` (default) uses the OpenAI Responses API with structured output, `OPENAI_MODEL` default `gpt-5.6-terra`, server-only `OPENAI_API_KEY`, `store: false`, and a 30-second SDK timeout. `AI_PROVIDER=ollama` uses the local `http://127.0.0.1:11434/api/chat` API, JSON Schema format, `OLLAMA_MODEL` default `qwen3:8b`, `OLLAMA_NUM_CTX` default 8192, no OpenAI key, and a 180-second timeout. Ollama thinking is disabled for concise structured feedback. The installed `qwen3:8b` Q4_K_M model is 5.2 GB; this machine reports 16 GiB RAM and an NVIDIA RTX 4070 Laptop GPU with 8 GiB VRAM. A synthetic real local inference through the Express route returned HTTP 200. No OpenAI call or cloud inference was made. [Ollama API documentation](https://docs.ollama.com/api/introduction) documents the local base URL; [structured outputs](https://docs.ollama.com/capabilities/structured-outputs) documents JSON Schema; [thinking controls](https://docs.ollama.com/capabilities/thinking) documents disabling thinking.
-- **Configuration:** `npm start` runs Node's `--env-file-if-exists=.env` from `backend/`; this was verified with a temporary sentinel value and no real secret. `backend/.gitignore` excludes `.env`; no local `backend/.env` exists. Keep keys out of Flutter and Android.
-- **Tests and dependencies:** Current backend `npm run check` passed and all 17 backend tests passed, including mocked OpenAI/Ollama structured success and provider failure coverage. Current Flutter analysis passed, all 39 Flutter tests passed (one opt-in API override test skipped), and the Android debug APK built successfully. The real local Ollama API-route request also passed with synthetic extracted text. A separate clean archive of commit `bf7d895` passed `npm ci` (102 packages, zero vulnerabilities), backend checks/tests, Flutter dependency resolution, formatting, analysis, and all 38 Flutter tests. No commit or push was made.
-- **Privacy/production:** Authentication, consent, retention/deletion, provider data handling, and deployment controls remain open before processing real resumes in production. `store: false` does not replace a review of current provider terms and project privacy requirements.
-- **CI:** `.github/workflows/flutter.yml` runs Flutter and backend CI on pushes and pull requests. GitHub Actions passed for the latest committed revision `bf7d895`; local sprint changes made after that run have not been pushed or run in CI.
+## Architecture
 
-## Repository structure
+- **Flutter:** `lib/` and `test/` at repository root. `HttpResumeAnalysisApi` chooses Android emulator `http://10.0.2.2:3000`, Windows `http://localhost:3000`, or compile-time override `API_BASE_URL`. PDF/DOCX uploads use `POST /api/v1/analyses`; edited or OCR text uses `POST /api/v1/analyses/text`. The same five-category score schema is validated by Dart. Revision history and draft persist only while the current results/editor route session remains alive; they are not saved across app restarts.
+- **Image input:** `ResumeImageInputScreen` selects/takes JPG/PNG, enforces a 15 MiB limit, runs local ML Kit OCR, lets the user edit extracted text, and asks consent before sending it to the backend. Text must be reviewed because OCR can be inaccurate.
+- **Backend:** `backend/` is Express 5 / Zod 4. `POST /api/v1/analyses` validates one PDF/DOCX up to 10 MiB, extracts text in memory (up to 100,000 characters), and analyzes it. The text route accepts 1–100,000 characters and an optional target role. Uploads/resume text are not written to disk or logged by application code. PDFs without extractable embedded text need the image/OCR path.
+- **Scoring:** five bounded category scores (clarity, impact, measurable results, skills/experience, formatting/organization); overall score is the rounded arithmetic mean. The rubric, examples, and limitations are documented in `docs/SCORING_RUBRIC.md`. Scores are guidance, not hiring or ATS predictions.
+- **Provider:** default `AI_PROVIDER=openai` uses OpenAI Responses structured output, model `gpt-5.6-terra` by default, and server-only `OPENAI_API_KEY`. `AI_PROVIDER=ollama` uses Ollama's local `http://127.0.0.1:11434/api/chat`, JSON Schema output, default `qwen3:8b`, context 8192, and a 180-second timeout. Ollama thinking is disabled for concise output. Machine reported 16 GiB RAM and RTX 4070 Laptop GPU with 8 GiB VRAM; Qwen3 8B quantized model is installed locally. Local-only model inference does not require login or credentials. Do not configure cloud models without an explicit privacy/network/account/usage review.
+- **Configuration:** `backend/.env.example` contains placeholders. `backend/.env` is ignored and absent. `npm start` reads optional `.env`. Never place provider keys in Flutter, Android resources, tracked files, or logs.
 
-- `lib/`, `test/` — root Flutter app and widget tests.
-- `android/` — generated Android host project; application ID is still `com.example.airesume`.
-- `backend/src/`, `backend/test/` — Express API, PDF/DOCX extraction, provider adapter, and mocked API tests.
-- `docs/` — setup, development, architecture, API contract, handover, and checklists.
-- `.github/workflows/flutter.yml` — Flutter and backend CI.
-- `AGENTS.md` — required onboarding and working instructions; read `docs/HANDOVER.md` first on each project task.
+## Verified on 23 October 2026
 
-## Setup and run
+- Backend: `npm run check` passed; `npm test` passed all 21 tests. Tests mock provider requests for automated tests.
+- Flutter: Dart format check passed; `flutter analyze` reported no issues; `flutter test` passed 49 tests with one opt-in API override test skipped by default.
+- Android: `flutter build apk --debug --no-pub` succeeded. Emulator `emulator-5554` was online and the app ran. A synthetic image was selected from gallery; ML Kit extracted its synthetic text on-device; after consent, the app sent the text through the Android emulator host URL to a temporary local Airesume backend on port 3001 and the local Ollama `qwen3:8b` model. The results screen showed a structured score and category feedback. This verifies actual local inference and app-to-backend connectivity with synthetic data, not analysis quality for real resumes.
+- Separate provider check: a synthetic request through the API route returned HTTP 200 with structured results. No personal resume was used.
+- OpenAI: not verified. No real `OPENAI_API_KEY` is configured or supplied. Cloud Ollama is not configured or tested.
+- GitHub CI: local changes remain uncommitted/unpushed and have not been checked by GitHub Actions. Existing CI evidence applies to the previously committed revision only.
 
-Use Flutter 3.47.7 stable with Dart 3.13.5, Node.js 22.9 or newer, Git, VS Code/Flutter extension, Android Studio/SDK, an emulator/device, and Java 17 for Android builds. Flutter setup from a fresh clone:
+## Setup
 
-```powershell
-flutter pub get
-flutter analyze
-flutter test
-flutter run
-```
+Use Node.js 22.9+ and Flutter 3.47.7 stable/Dart 3.13.5, plus Android Studio/SDK and Java 17 for Android builds.
 
-Backend setup (see README for secure PowerShell key entry):
+Backend from PowerShell:
 
 ```powershell
-cd backend
+Set-Location C:\Users\jaxon\OneDrive\Documents\GitHub\Airesume\backend
 npm install
+Copy-Item .env.example .env
+# Edit .env and select AI_PROVIDER=ollama for local Ollama, or AI_PROVIDER=openai with your own server-side key.
 npm run check
 npm test
 npm start
 ```
 
-`npm start` loads an optional ignored `backend/.env`. Copy `.env.example` and set a server-side `OPENAI_API_KEY`; `OPENAI_MODEL` is optional and defaults to `gpt-5.6-terra`. Never put provider credentials in Flutter or commit a real `.env`. Real analysis requests can incur usage charges. Do not use a real resume for routine tests.
+For OpenAI, enter your own key into the ignored local `backend/.env` file; never paste it into Flutter or commit it. For Ollama, install/start Ollama, then run `ollama pull qwen3:8b`, set `AI_PROVIDER=ollama`, and leave `OLLAMA_BASE_URL=http://127.0.0.1:11434`. Set `OLLAMA_MODEL` if using a different local model. A successful `/health` only indicates the API server is listening.
 
-## Verification record
+Check health and launch the Android app in another PowerShell window:
 
-**Verified locally on 23 October 2026:** backend syntax checks and 17 tests; Flutter analysis, 39 passing tests with one opt-in test skipped, and `flutter build apk --debug`. Ollama CLI 0.40.9 installed successfully; its local service returned model-list responses and `qwen3:8b` downloaded (5.2 GB). A synthetic PDF multipart request passed through a temporary Airesume Express API using the real local Ollama model and returned HTTP 200 with a schema-valid summary, strengths, improvements, and missing-information list. The test extractor was injected to return synthetic text, so it verified the provider and API integration without exercising PDF parsing in that request. `backend/.env` is ignored and absent; no OpenAI key is configured, and no OpenAI or cloud request was made. An earlier clean snapshot passed `npm ci` (102 packages; zero vulnerabilities) and Flutter checks. GitHub Actions passed for commit `bf7d895`; current changes are local and unpushed.
+```powershell
+Invoke-RestMethod http://localhost:3000/health
+Set-Location C:\Users\jaxon\OneDrive\Documents\GitHub\Airesume
+flutter pub get
+flutter analyze
+flutter test
+flutter run -d emulator-5554
+```
 
-**Emulator status:** The Pixel 7 AVD was launched, reconnected, ADB was restarted, and the AVD was cold-booted without wiping data. ADB continued to report `emulator-5554` offline, so the app was not installed/launched and the Android upload flow was not verified in this sprint. The debug/release APK builds are local build checks only.
+Android emulator uses `10.0.2.2` to reach the Windows host. For a different URL, pass `--dart-define=API_BASE_URL=http://10.0.2.2:3000` at `flutter run`. If port 3000 is busy, stop the old server or choose a different `PORT` and matching API URL. If Ollama is unavailable, check `ollama list`, service status, `/api/tags`, and that configured model is pulled. Do not use `/health` to infer provider readiness.
 
-**Not verified:** A teammate's fresh-clone run, screen review, live OpenAI request, Android emulator upload/analysis flow, production retention/cache policy, and GitHub CI for the current uncommitted work. CI passed for `bf7d895`; current changes were not pushed.
+## Remaining work
 
-## Next steps
+- 6.8 and 11.8 remain open: verify the complete PDF/DOCX upload plus editor/regrade flow on a real device/emulator. The image OCR → local Ollama flow is verified.
+- 5.3 and 5.10 remain open: provide a valid OpenAI key if OpenAI is desired and perform an authorized live request; otherwise local Ollama is a functioning option. Do not fabricate a key.
+- 9.8 teammate setup/review and production acceptance/privacy tasks remain open. Review retention, provider data handling, and deployment controls before real personal resumes are processed in production.
+- Update the docs/checklist whenever verification or implementation changes. Checklist totals currently show 74 complete and 15 open; complete only after its stated verification passes.
 
-1. Ask another teammate to follow the README fresh-clone steps, run Flutter/backend setup, and report whether the app launches (checklist item 1.7).
-2. Restart the Pixel 7 AVD from Android Studio Device Manager until `flutter devices` shows it online, then run `flutter run -d emulator-5554` and verify selection, consent, upload, progress, and safe missing-key behavior.
-3. To use local inference, set `AI_PROVIDER=ollama`, `OLLAMA_MODEL=qwen3:8b`, and start the Ollama service before `npm start`; no OpenAI key is needed. To use OpenAI, add the developer's own `OPENAI_API_KEY` to the backend process environment or ignored `backend/.env`. Never paste provider keys into Flutter or commit them.
-4. Review local changes, then push only with authorization and observe CI for that new commit; current `bf7d895` CI was successful.
-5. Resolve native-picker cache retention, provider data handling, and production deployment decisions before processing real resumes in production.
-
-## Keeping the handover current
-
-When architecture, verified behavior, environment requirements, test results, or the next task changes, update this file and the matching development checklist. Mark checklist items complete only after implementation and relevant verification; report local and GitHub CI results separately.
+No commit, push, merge, or branch change was made.
