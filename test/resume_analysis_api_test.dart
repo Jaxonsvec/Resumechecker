@@ -104,6 +104,40 @@ void main() {
     client.close();
   });
 
+  test('maps local Ollama failures to provider-specific safe copy', () async {
+    for (final code in ['OLLAMA_UNAVAILABLE', 'OLLAMA_MODEL_NOT_FOUND']) {
+      final client = MockClient((_) async {
+        return http.Response(
+          jsonEncode({
+            'error': {'code': code, 'message': 'private backend details'},
+          }),
+          503,
+        );
+      });
+      final api = HttpResumeAnalysisApi(
+        client: client,
+        baseUrl: 'http://localhost',
+      );
+
+      await expectLater(
+        api.analyze(
+          fileName: 'Resume.docx',
+          readBytes: () async => Uint8List.fromList([0x50, 0x4b, 0x03, 0x04]),
+        ),
+        throwsA(
+          isA<ResumeAnalysisException>().having(
+            (error) => error.message,
+            'message',
+            code == 'OLLAMA_UNAVAILABLE'
+                ? contains('Start Ollama')
+                : contains('Pull OLLAMA_MODEL'),
+          ),
+        ),
+      );
+      client.close();
+    }
+  });
+
   test(
     'maps network and provider failures without exposing response details',
     () async {

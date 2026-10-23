@@ -84,7 +84,7 @@ export function createApp({
       const analysis = AnalysisResultSchema.parse(await analyzer.analyze({
         resumeText,
         ...(targetRole ? { targetRole } : {}),
-      }, { signal: AbortSignal.timeout(35_000) }));
+      }, { signal: AbortSignal.timeout(analyzer.timeoutMs ?? 35_000) }));
       return res.status(200).json({ analysis });
     } catch (error) {
       if (error instanceof ResumeFileError) {
@@ -92,6 +92,12 @@ export function createApp({
       }
       if (error?.code === 'PROVIDER_NOT_CONFIGURED') {
         return sendError(res, 503, 'ANALYSIS_UNAVAILABLE', 'Set OPENAI_API_KEY in backend/.env or the server environment, then restart the backend.');
+      }
+      if (error?.code === 'OLLAMA_UNAVAILABLE') {
+        return sendError(res, 503, 'OLLAMA_UNAVAILABLE', 'The local Ollama service is unavailable. Start Ollama and check OLLAMA_BASE_URL.');
+      }
+      if (error?.code === 'OLLAMA_MODEL_NOT_FOUND') {
+        return sendError(res, 503, 'OLLAMA_MODEL_NOT_FOUND', 'The configured Ollama model is not installed. Pull OLLAMA_MODEL and retry.');
       }
       if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
         return sendError(res, 504, 'ANALYSIS_TIMEOUT', 'Resume analysis took too long. Please try again.');

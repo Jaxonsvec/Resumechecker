@@ -36,11 +36,12 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 
 ## 4. Environment variables and privacy
 
-- [ ] No environment variable or API key is needed to browse Flutter screens or call the backend health route. A server-side `OPENAI_API_KEY` is required for actual analysis.
+- [ ] No environment variable or API key is needed to browse Flutter screens or call the backend health route. Actual analysis uses `AI_PROVIDER=openai` (requires a server-side `OPENAI_API_KEY`) or `AI_PROVIDER=ollama` (requires a running local Ollama service and installed model, no OpenAI key).
+- [ ] For local Ollama, install the Windows app/CLI, confirm `ollama --version`, pull a local model such as `qwen3:8b`, and verify `http://127.0.0.1:11434/api/tags` responds. Set `OLLAMA_BASE_URL` and `OLLAMA_MODEL` in the backend environment; `OLLAMA_NUM_CTX` controls the context budget.
 - [ ] The backend uses `PORT` (default `3000`). To use another port in PowerShell, set `$env:PORT = "3001"` before starting it.
-- [ ] `backend/.env.example` contains placeholder values. To use the provider, copy it with `Copy-Item .env.example .env` inside `backend/` and add a server-side key.
-- [ ] Never put an OpenAI key in Flutter, `--dart-define`, source control, issue comments, or logs.
-- [ ] Do not use real resumes in tests. The backend sends uploaded extracted text to the configured provider; review privacy and provider terms before using real resumes.
+- [ ] `backend/.env.example` contains placeholder values and provider defaults. Copy it with `Copy-Item .env.example .env` inside `backend/`; select `AI_PROVIDER=ollama` for local inference or `AI_PROVIDER=openai` with your own server-side key.
+- [ ] Never put provider credentials in Flutter, `--dart-define`, source control, issue comments, or logs.
+- [ ] Do not use real resumes in tests. Ollama local inference sends prompts to the local Ollama service; OpenAI or Ollama Cloud sends resume text to an external provider. Review privacy terms before using real resumes.
 
 ## 5. Run the app and optional API
 
@@ -50,7 +51,7 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 - [ ] Optional: **Select a file locally** opens a metadata-only file-selection preview; it does not upload or analyze that file.
 - [ ] Tap **Choose a resume** and select a PDF or DOCX up to 10 MiB. Confirm the filename and size appear, then try replacing and removing the selection.
 - [ ] Configure `API_BASE_URL` if the backend is not at the platform default. Android emulator uses `http://10.0.2.2:3000`; Windows uses `http://localhost:3000`.
-- [ ] Before real analysis, configure a server-side provider key and review the provider's privacy terms. The app requires processing acknowledgment before sending resume text.
+- [ ] Before real analysis, configure either the local Ollama service or a server-side OpenAI key and review provider privacy terms. The app requires processing acknowledgment before sending resume text.
 - [ ] Follow [the README backend setup](../README.md#backend-optional-during-flutter-development) to enter the key without putting it in command history. A healthy `/health` route does not validate the provider key.
 - [ ] Optional: from `backend/`, run `npm start`; verify `http://localhost:3000/health` returns `{"status":"ok"}`.
 - [ ] Optional: after dependency installation and verification, send one synthetic PDF/DOCX multipart upload to `/api/v1/analyses`; confirm it returns the documented structured result when a backend provider key is configured.

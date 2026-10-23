@@ -1,6 +1,6 @@
 # Airesume
 
-A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls a server-configured OpenAI model. Provider keys stay on the backend, never in Flutter. Flutter integration tests use mocks; synthetic text-only PDF/DOCX extraction is verified, but a live provider request is not.
+A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls the selected server-side provider: OpenAI or local Ollama. Provider credentials remain on the backend, never in Flutter. Automated provider tests use mocks. A real local Ollama structured-analysis request with synthetic resume text returned HTTP 200 on this machine; no live OpenAI request was made.
 
 ## Start here
 
@@ -63,7 +63,7 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 - `lib/` — Flutter app
 - `test/` — Flutter widget tests
 - `android/` — Android project configuration
-- `backend/` — Express API, PDF/DOCX extraction, and OpenAI analysis adapter
+- `backend/` — Express API, PDF/DOCX extraction, and OpenAI/local Ollama analysis adapters
 - `docs/` — architecture, proposed API contract, and team handover
 - [Development checklist](docs/DEVELOPMENT_CHECKLIST.md) — feature-by-feature team work plan
 - `.github/workflows/` — Flutter CI
@@ -80,7 +80,29 @@ npm install
 Copy-Item .env.example .env
 ```
 
-Provide your own OpenAI API key to this PowerShell session without putting it in command history:
+Choose one provider. To use local Ollama, install it with Winget (or use the [official download](https://ollama.com/download)), then open Ollama so its local service is running:
+
+```powershell
+winget install --id Ollama.Ollama -e
+ollama --version
+ollama pull qwen3:8b
+ollama list
+```
+
+If the desktop app is not running the service, start `ollama serve` in a separate PowerShell window.
+
+In the same PowerShell window used to start the backend, select local Ollama (no OpenAI key is required):
+
+```powershell
+$env:AI_PROVIDER = 'ollama'
+$env:OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
+$env:OLLAMA_MODEL = 'qwen3:8b'
+$env:OLLAMA_NUM_CTX = '8192'
+```
+
+To keep the selection across sessions, set `AI_PROVIDER=ollama`, `OLLAMA_BASE_URL`, and `OLLAMA_MODEL` in the ignored `backend/.env`. The backend contacts Ollama locally at `/api/chat`; the Flutter app still talks only to the Airesume backend. The 8B Q4 model download is about 5.2 GB. This development machine reports 16 GiB system RAM and an RTX 4070 Laptop GPU with 8 GiB VRAM; that makes `qwen3:8b` a reasonable starting point, not a verified performance guarantee. If memory is tight, choose a smaller model such as `qwen3:4b`.
+
+To use OpenAI instead, leave `AI_PROVIDER` unset or set it to `openai`, then provide your own OpenAI API key to the backend PowerShell session without putting it in command history:
 
 ```powershell
 $secureKey = Read-Host 'Enter your OpenAI API key' -AsSecureString
@@ -104,15 +126,17 @@ flutter devices
 flutter run -d emulator-5554
 ```
 
-The service listens on port 3000 by default; set `$env:PORT = "3001"` before `npm start` to change it. `npm start` loads `backend/.env` via Node's `--env-file-if-exists` support. You can either edit the ignored `.env` file to set `OPENAI_API_KEY` or set it in the launching PowerShell session as above. Flutter uses `http://10.0.2.2:3000` by default on Android emulator and `http://localhost:3000` on Windows desktop. Override with `--dart-define=API_BASE_URL=http://10.0.2.2:3000` when needed. For Flutter Web, allow its exact origin with `CORS_ALLOWED_ORIGINS` (for example `http://localhost:5000`) and start Chrome using `--web-port=5000`. Never commit a local `.env` or send a key to Flutter. No key is needed for `/health`.
+The service listens on port 3000 by default; set `$env:PORT = "3001"` before `npm start` to change it. `npm start` loads `backend/.env` via Node's `--env-file-if-exists` support. Flutter uses `http://10.0.2.2:3000` by default on Android emulator and `http://localhost:3000` on Windows desktop. Override with `--dart-define=API_BASE_URL=http://10.0.2.2:3000` when needed. For Flutter Web, allow its exact origin with `CORS_ALLOWED_ORIGINS` (for example `http://localhost:5000`) and start Chrome using `--web-port=5000`. Never commit a local `.env` or send a provider key to Flutter. Local Ollama inference needs no provider key; `/health` does not test provider availability.
 
 ### Backend configuration troubleshooting
 
-- **The app says analysis is not configured:** replace the example placeholder with your own `OPENAI_API_KEY` in the same PowerShell session that starts Node, or in `backend/.env`; stop and restart `npm start` after changing it. The API returns an actionable `ANALYSIS_UNAVAILABLE` message without echoing the key. A successful `/health` response only confirms the server is listening; it does not check provider configuration.
+- **The app says analysis is not configured:** check `AI_PROVIDER`. For OpenAI, set your own `OPENAI_API_KEY` in the backend environment or ignored `.env`. For Ollama, set `AI_PROVIDER=ollama`, start the Ollama app/service, and confirm `OLLAMA_BASE_URL` and `OLLAMA_MODEL`; install a missing model with `ollama pull <model>`. Restart the backend after changing settings. A successful `/health` response only confirms the backend is listening.
+- **Ollama is unavailable or the model is missing:** run `ollama list`, start Ollama, and verify `http://127.0.0.1:11434/api/tags` responds. Pull the configured `OLLAMA_MODEL`. Ollama model inference stays on the local host when `OLLAMA_BASE_URL` uses the local address.
 - **`npm start` reports `EADDRINUSE` on port 3000:** a backend is already listening. Stop that instance in the PowerShell window where it was started, then launch one instance with the key configured.
 - **The emulator cannot reach the backend:** leave `npm start` running on Windows, confirm `Invoke-RestMethod http://localhost:3000/health` succeeds on Windows, then confirm the app uses `http://10.0.2.2:3000` (the default). Do not use `localhost` as the emulator's host address.
-- **The key is configured but analysis still fails:** verify your API account can use the configured `OPENAI_MODEL` and that the key has API access/billing enabled. Provider errors are intentionally returned without secret values.
+- **OpenAI analysis fails:** verify your API account can use the configured `OPENAI_MODEL` and that the key has API access/billing enabled. Provider errors are intentionally returned without secret values.
+- **Cloud models:** this project does not configure Ollama Cloud. Cloud inference requires an Ollama account/sign-in or API key, network access, and is subject to its usage terms; resume text leaves the machine. Choose it only after reviewing data handling and costs.
 
 ## Checks
 
-The locally verified commands and outcomes are recorded in [the handover](docs/HANDOVER.md). GitHub Actions is configured for Flutter and backend checks, but has not yet been run on GitHub.
+The locally verified commands and outcomes are recorded in [the handover](docs/HANDOVER.md). [GitHub Actions](https://github.com/Jaxonsvec/Resumechecker/actions) is configured for Flutter and backend checks; the latest observed runs passed for commit `bf7d895`. Changes made after that commit have not been pushed or checked by GitHub CI.

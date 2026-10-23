@@ -183,6 +183,26 @@ test('analysis maps provider timeouts and rate limits to stable errors', async (
   await new Promise((resolve) => rateLimitServer.close(resolve));
 });
 
+test('unexpected provider failures do not expose resume text or secret-like details', async () => {
+  const failureServer = createServer(createApp({
+    textExtractor: async () => 'SYNTHETIC_RESUME_SENTINEL',
+    analyzer: {
+      async analyze() {
+        throw new Error('SYNTHETIC_RESUME_SENTINEL sk-test-secret-sentinel');
+      },
+    },
+  }));
+  await new Promise((resolve) => failureServer.listen(0, '127.0.0.1', resolve));
+  const response = await fetch(`http://127.0.0.1:${failureServer.address().port}/api/v1/analyses`, {
+    method: 'POST', body: uploadForm(),
+  });
+  const payload = await response.json();
+  assert.equal(response.status, 502);
+  assert.equal(payload.error.code, 'ANALYSIS_FAILED');
+  assert.doesNotMatch(JSON.stringify(payload), /SYNTHETIC_RESUME_SENTINEL|sk-test-secret-sentinel/);
+  await new Promise((resolve) => failureServer.close(resolve));
+});
+
 test('missing OpenAI key returns actionable setup steps without exposing credentials', async () => {
   const missingKeyServer = createServer(createApp({
     textExtractor: async () => 'Synthetic resume.',
@@ -208,6 +228,34 @@ test('the untouched example-key placeholder is treated as missing configuration'
     analyzer.analyze({ resumeText: 'Synthetic resume.' }),
     { code: 'PROVIDER_NOT_CONFIGURED' },
   );
+});
+
+test('Ollama availability failures return safe setup messages', async () => {
+  for (const [code, expectedText] of [
+    ['OLLAMA_UNAVAILABLE', /Start Ollama/],
+    ['OLLAMA_MODEL_NOT_FOUND', /Pull OLLAMA_MODEL/],
+  ]) {
+    const localFailureServer = createServer(createApp({
+      textExtractor: async () => 'Synthetic resume.',
+      analyzer: {
+        async analyze() {
+          const error = new Error('private local service detail');
+          error.code = code;
+          throw error;
+        },
+      },
+    }));
+    await new Promise((resolve) => localFailureServer.listen(0, '127.0.0.1', resolve));
+    const response = await fetch(`http://127.0.0.1:${localFailureServer.address().port}/api/v1/analyses`, {
+      method: 'POST', body: uploadForm(),
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 503);
+    assert.equal(payload.error.code, code);
+    assert.match(payload.error.message, expectedText);
+    assert.doesNotMatch(JSON.stringify(payload), /private local service detail/);
+    await new Promise((resolve) => localFailureServer.close(resolve));
+  }
 });
 
 test('malformed JSON and unknown routes use the shared error shape', async () => {
