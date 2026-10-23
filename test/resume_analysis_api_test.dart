@@ -104,6 +104,97 @@ void main() {
     client.close();
   });
 
+  test('maps local Ollama failures to provider-specific safe copy', () async {
+    for (final code in ['OLLAMA_UNAVAILABLE', 'OLLAMA_MODEL_NOT_FOUND']) {
+      final client = MockClient((_) async {
+        return http.Response(
+          jsonEncode({
+            'error': {'code': code, 'message': 'private backend details'},
+          }),
+          503,
+        );
+      });
+      final api = HttpResumeAnalysisApi(
+        client: client,
+        baseUrl: 'http://localhost',
+      );
+
+      await expectLater(
+        api.analyze(
+          fileName: 'Resume.docx',
+          readBytes: () async => Uint8List.fromList([0x50, 0x4b, 0x03, 0x04]),
+        ),
+        throwsA(
+          isA<ResumeAnalysisException>().having(
+            (error) => error.message,
+            'message',
+            code == 'OLLAMA_UNAVAILABLE'
+                ? contains('Start Ollama')
+                : contains('Pull OLLAMA_MODEL'),
+          ),
+        ),
+      );
+      client.close();
+    }
+  });
+
+  test(
+    'maps network and provider failures without exposing response details',
+    () async {
+      final networkClient = MockClient((_) async {
+        throw http.ClientException('synthetic resume text and private token');
+      });
+      final networkApi = HttpResumeAnalysisApi(
+        client: networkClient,
+        baseUrl: 'http://localhost:3000',
+      );
+      await expectLater(
+        networkApi.analyze(
+          fileName: 'Resume.pdf',
+          readBytes: () async => Uint8List.fromList([1]),
+        ),
+        throwsA(
+          isA<ResumeAnalysisException>().having(
+            (error) => error.message,
+            'message',
+            'Could not reach the analysis server. Check the connection and try again.',
+          ),
+        ),
+      );
+      networkClient.close();
+
+      final providerClient = MockClient((_) async {
+        return http.Response(
+          jsonEncode({
+            'error': {
+              'code': 'ANALYSIS_FAILED',
+              'message': 'synthetic resume text and private token',
+            },
+          }),
+          502,
+        );
+      });
+      final providerApi = HttpResumeAnalysisApi(
+        client: providerClient,
+        baseUrl: 'http://localhost:3000',
+      );
+      await expectLater(
+        providerApi.analyze(
+          fileName: 'Resume.pdf',
+          readBytes: () async => Uint8List.fromList([1]),
+        ),
+        throwsA(
+          isA<ResumeAnalysisException>().having(
+            (error) => error.message,
+            'message',
+            'The analysis could not be completed. Please try again.',
+          ),
+        ),
+      );
+      providerClient.close();
+    },
+  );
+
   test('defaults to the host-loopback URL for Android and Windows', () async {
     final originalPlatform = debugDefaultTargetPlatformOverride;
     const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
