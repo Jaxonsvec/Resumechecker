@@ -39,7 +39,7 @@ export function createResumeAnalyzer({
 
   return {
     async analyze({ resumeText, targetRole }, { signal } = {}) {
-      if (!openai && !apiKey) {
+      if (!openai && (!apiKey?.trim() || apiKey === 'replace-with-a-server-side-key')) {
         const error = new Error('Analysis provider is not configured.');
         error.code = 'PROVIDER_NOT_CONFIGURED';
         throw error;

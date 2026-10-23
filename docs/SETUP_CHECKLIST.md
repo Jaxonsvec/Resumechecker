@@ -49,6 +49,7 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
 - [ ] Tap **Choose a resume** and select a PDF or DOCX up to 10 MiB. Confirm the filename and size appear, then try replacing and removing the selection.
 - [ ] Configure `API_BASE_URL` if the backend is not at the platform default. Android emulator uses `http://10.0.2.2:3000`; Windows uses `http://localhost:3000`.
 - [ ] Before real analysis, configure a server-side provider key and review the provider's privacy terms. The app requires processing acknowledgment before sending resume text.
+- [ ] Follow [the README backend setup](../README.md#backend-optional-during-flutter-development) to enter the key without putting it in command history. A healthy `/health` route does not validate the provider key.
 - [ ] Optional: from `backend/`, run `npm start`; verify `http://localhost:3000/health` returns `{"status":"ok"}`.
 - [ ] Optional: after dependency installation and verification, send one synthetic PDF/DOCX multipart upload to `/api/v1/analyses`; confirm it returns the documented structured result when a backend provider key is configured.
 

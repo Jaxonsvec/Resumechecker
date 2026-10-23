@@ -122,8 +122,7 @@ class HttpResumeAnalysisApi implements ResumeAnalysisApi {
       'NO_EXTRACTABLE_TEXT' => 'This PDF has no selectable text. Scanned image PDFs are not supported yet.',
       'INVALID_RESUME_TEXT' =>
         'We could not find enough readable text in this resume.',
-      'ANALYSIS_UNAVAILABLE' =>
-        'Resume analysis is not configured on this server yet.',
+      'ANALYSIS_UNAVAILABLE' => 'Resume analysis is not configured. Set OPENAI_API_KEY in backend/.env and restart the backend.',
       'ANALYSIS_BUSY' || 'ANALYSIS_TIMEOUT' =>
         'The analysis service is busy. Please try again in a moment.',
       _ when statusCode >= 500 =>

@@ -25,7 +25,7 @@ Successful response (HTTP 200):
 
 The response intentionally has no numeric score. Model output is constrained by a Zod/JSON Schema contract. The prompt requests evidence-grounded writing feedback and prohibits invented facts, protected-trait inferences, hiring predictions, and ranking.
 
-Errors: HTTP 400 `INVALID_REQUEST` / `INVALID_UPLOAD`; 413 `FILE_TOO_LARGE`; 415 `UNSUPPORTED_FILE_TYPE`; 422 `INVALID_FILE`, `NO_EXTRACTABLE_TEXT`, or `INVALID_RESUME_TEXT`; 502 `INVALID_ANALYSIS_RESPONSE` / `ANALYSIS_FAILED`; 503 `ANALYSIS_UNAVAILABLE` / `ANALYSIS_BUSY`; 504 `ANALYSIS_TIMEOUT`; 404 `NOT_FOUND`. Error messages do not include document text or provider error details. Scanned/image-only PDFs are rejected because OCR is not implemented.
+Errors: HTTP 400 `INVALID_REQUEST` / `INVALID_UPLOAD`; 413 `FILE_TOO_LARGE`; 415 `UNSUPPORTED_FILE_TYPE`; 422 `INVALID_FILE`, `NO_EXTRACTABLE_TEXT`, or `INVALID_RESUME_TEXT`; 502 `INVALID_ANALYSIS_RESPONSE` / `ANALYSIS_FAILED`; 503 `ANALYSIS_UNAVAILABLE` / `ANALYSIS_BUSY`; 504 `ANALYSIS_TIMEOUT`; 404 `NOT_FOUND`. When the key is missing or left at the example placeholder, `ANALYSIS_UNAVAILABLE` instructs the developer to set `OPENAI_API_KEY` in `backend/.env` or the server environment and restart. Error messages do not include credentials, document text, or provider error details. Scanned/image-only PDFs are rejected because OCR is not implemented.
 
 ## Processing and limitations
 

@@ -3,6 +3,7 @@ import { after, before, test } from 'node:test';
 import { createServer } from 'node:http';
 import { createApp } from '../src/app.js';
 import { ResumeFileError } from '../src/resume_text.js';
+import { createResumeAnalyzer } from '../src/providers/resume_analyzer.js';
 
 let server;
 let baseUrl;
@@ -123,6 +124,33 @@ test('analysis protects provider and text extraction errors with stable response
   assert.equal(invalidResult.status, 502);
   assert.equal((await invalidResult.json()).error.code, 'INVALID_ANALYSIS_RESPONSE');
   await new Promise((resolve) => invalidResultApp.close(resolve));
+});
+
+test('missing OpenAI key returns actionable setup steps without exposing credentials', async () => {
+  const missingKeyServer = createServer(createApp({
+    textExtractor: async () => 'Synthetic resume.',
+    analyzer: createResumeAnalyzer({ apiKey: '' }),
+  }));
+  await new Promise((resolve) => missingKeyServer.listen(0, '127.0.0.1', resolve));
+
+  const response = await fetch(`http://127.0.0.1:${missingKeyServer.address().port}/api/v1/analyses`, {
+    method: 'POST', body: uploadForm(),
+  });
+  const payload = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(payload.error.code, 'ANALYSIS_UNAVAILABLE');
+  assert.match(payload.error.message, /OPENAI_API_KEY/);
+  assert.match(payload.error.message, /backend\/\.env/);
+  assert.doesNotMatch(JSON.stringify(payload), /sk-[a-z0-9]+/i);
+  await new Promise((resolve) => missingKeyServer.close(resolve));
+});
+
+test('the untouched example-key placeholder is treated as missing configuration', async () => {
+  const analyzer = createResumeAnalyzer({ apiKey: 'replace-with-a-server-side-key' });
+  await assert.rejects(
+    analyzer.analyze({ resumeText: 'Synthetic resume.' }),
+    { code: 'PROVIDER_NOT_CONFIGURED' },
+  );
 });
 
 test('malformed JSON and unknown routes use the shared error shape', async () => {

@@ -72,16 +72,46 @@ The **Choose a resume** action opens the native file chooser. After you accept t
 
 ## Backend (optional during Flutter development)
 
-Install Node.js 22.9 or newer, then from `backend/` run:
+Install Node.js 22.9 or newer. In a PowerShell window, install dependencies and create the ignored local environment file:
 
 ```powershell
+Set-Location C:\Users\jaxon\OneDrive\Documents\GitHub\Airesume\backend
 npm install
+Copy-Item .env.example .env
+```
+
+Provide your own OpenAI API key to this PowerShell session without putting it in command history:
+
+```powershell
+$secureKey = Read-Host 'Enter your OpenAI API key' -AsSecureString
+$env:OPENAI_API_KEY = [System.Net.NetworkCredential]::new('', $secureKey).Password
+```
+
+Then start the backend and check its health from the same window:
+
+```powershell
 npm run check
 npm test
 npm start
 ```
 
-The service listens on port 3000 by default; set `$env:PORT = "3001"` before `npm start` to change it. The server reads a local `backend/.env` file if present. Set `OPENAI_API_KEY` there to enable analysis; `OPENAI_MODEL` defaults to `gpt-5.6-terra`. On the Android emulator, Flutter defaults to `http://10.0.2.2:3000`; Windows defaults to `http://localhost:3000`. Override with `--dart-define=API_BASE_URL=http://host:port` when needed. For Flutter Web, allow its exact origin with `CORS_ALLOWED_ORIGINS` (for example `http://localhost:5000`) and start Chrome using `--web-port=5000`. Never commit a local `.env` or send a key to Flutter. No key is needed for `/health`.
+In a second PowerShell window, check the health endpoint and launch Flutter on the running Android emulator:
+
+```powershell
+Invoke-RestMethod http://localhost:3000/health
+Set-Location C:\Users\jaxon\OneDrive\Documents\GitHub\Airesume
+flutter devices
+flutter run -d emulator-5554
+```
+
+The service listens on port 3000 by default; set `$env:PORT = "3001"` before `npm start` to change it. `npm start` loads `backend/.env` via Node's `--env-file-if-exists` support. You can either edit the ignored `.env` file to set `OPENAI_API_KEY` or set it in the launching PowerShell session as above. Flutter uses `http://10.0.2.2:3000` by default on Android emulator and `http://localhost:3000` on Windows desktop. Override with `--dart-define=API_BASE_URL=http://10.0.2.2:3000` when needed. For Flutter Web, allow its exact origin with `CORS_ALLOWED_ORIGINS` (for example `http://localhost:5000`) and start Chrome using `--web-port=5000`. Never commit a local `.env` or send a key to Flutter. No key is needed for `/health`.
+
+### Backend configuration troubleshooting
+
+- **The app says analysis is not configured:** replace the example placeholder with your own `OPENAI_API_KEY` in the same PowerShell session that starts Node, or in `backend/.env`; stop and restart `npm start` after changing it. The API returns an actionable `ANALYSIS_UNAVAILABLE` message without echoing the key. A successful `/health` response only confirms the server is listening; it does not check provider configuration.
+- **`npm start` reports `EADDRINUSE` on port 3000:** a backend is already listening. Stop that instance in the PowerShell window where it was started, then launch one instance with the key configured.
+- **The emulator cannot reach the backend:** leave `npm start` running on Windows, confirm `Invoke-RestMethod http://localhost:3000/health` succeeds on Windows, then confirm the app uses `http://10.0.2.2:3000` (the default). Do not use `localhost` as the emulator's host address.
+- **The key is configured but analysis still fails:** verify your API account can use the configured `OPENAI_MODEL` and that the key has API access/billing enabled. Provider errors are intentionally returned without secret values.
 
 ## Checks
 

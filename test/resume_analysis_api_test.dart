@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -71,17 +71,18 @@ void main() {
   );
 
   test('maps provider-unavailable errors to user-safe copy', () async {
-    final client = MockClient(
-      (_) async => http.Response(
+    final client = MockClient((_) async {
+      return http.Response(
         jsonEncode({
           'error': {
             'code': 'ANALYSIS_UNAVAILABLE',
-            'message': 'Server-specific details are not shown.',
+            'message':
+                'Set OPENAI_API_KEY in backend/.env and restart the backend.',
           },
         }),
         503,
-      ),
-    );
+      );
+    });
     final api = HttpResumeAnalysisApi(
       client: client,
       baseUrl: 'http://localhost',
@@ -96,12 +97,71 @@ void main() {
         isA<ResumeAnalysisException>().having(
           (error) => error.message,
           'message',
-          contains('not configured'),
+          contains('backend/.env'),
         ),
       ),
     );
     client.close();
   });
+
+  test('defaults to the host-loopback URL for Android and Windows', () async {
+    final originalPlatform = debugDefaultTargetPlatformOverride;
+    const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+    final configuredUri = configuredBaseUrl.isEmpty
+        ? null
+        : Uri.tryParse(configuredBaseUrl);
+    final requestedUrls = <Uri>[];
+    final client = MockClient((request) async {
+      requestedUrls.add(request.url);
+      return http.Response(jsonEncode({'analysis': analysisJson}), 200);
+    });
+
+    try {
+      for (final entry in [
+        (TargetPlatform.android, '10.0.2.2'),
+        (TargetPlatform.windows, 'localhost'),
+      ]) {
+        debugDefaultTargetPlatformOverride = entry.$1;
+        final api = HttpResumeAnalysisApi(client: client);
+        await api.analyze(
+          fileName: 'Resume.pdf',
+          readBytes: () async => Uint8List.fromList([1]),
+        );
+        expect(requestedUrls.last.host, configuredUri?.host ?? entry.$2);
+        expect(
+          requestedUrls.last.port,
+          configuredUri?.hasPort == true ? configuredUri!.port : 3000,
+        );
+      }
+    } finally {
+      debugDefaultTargetPlatformOverride = originalPlatform;
+      client.close();
+    }
+  });
+
+  const configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
+  test(
+    'uses the API_BASE_URL compile-time override',
+    () async {
+      Uri? requestedUrl;
+      final client = MockClient((request) async {
+        requestedUrl = request.url;
+        return http.Response(jsonEncode({'analysis': analysisJson}), 200);
+      });
+      final api = HttpResumeAnalysisApi(client: client);
+
+      await api.analyze(
+        fileName: 'Resume.pdf',
+        readBytes: () async => Uint8List.fromList([1]),
+      );
+
+      expect(requestedUrl, Uri.parse('$configuredBaseUrl/api/v1/analyses'));
+      client.close();
+    },
+    skip: configuredBaseUrl.isEmpty
+        ? 'Run with --dart-define=API_BASE_URL=http://example:3000'
+        : false,
+  );
 
   test('rejects malformed analysis response data', () {
     expect(

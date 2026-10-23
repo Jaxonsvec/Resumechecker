@@ -4,16 +4,17 @@ Updated 22 October 2026. This describes the current checkout and separates imple
 
 ## Purpose and status
 
-Airesume is a Flutter-first app for AI-assisted resume feedback. Phase 3 selection, the Phase 4/5 backend analyzer, and the Phase 6 Flutter upload/result workflow are implemented in source on `codex/phase-3-resume-input`. Flutter formatting, static analysis, and automated tests pass locally. Backend syntax checks and eight mocked API/unit tests pass using the existing local `node_modules`. The original demo branch ref remains unchanged; work is uncommitted on this feature branch.
+Airesume is a Flutter-first app for AI-assisted resume feedback. Phase 3 selection, the Phase 4/5 backend analyzer, and the Phase 6 Flutter upload/result workflow are implemented in source on `codex/phase-3-resume-input`. The backend dependency update to OpenAI SDK 6.49.0 and the existing Zod 4 dependency are reflected in `package-lock.json`; `npm install` reports up to date. Backend configuration tests and local Flutter/backend checks pass. No real OpenAI key has been supplied. Existing local changes must be preserved; do not commit or push without authorization.
 
-The Flutter app now requests explicit processing consent, uploads the selected PDF/DOCX and optional target role, shows a loading state, parses structured feedback, and supports retry after safe errors. No real resume, provider key, or live model request was used. Android emulator/device execution, live provider execution, npm clean-install/lockfile verification, and GitHub CI remain unverified.
+The Flutter app requests explicit processing consent, uploads the selected PDF/DOCX and optional target role, shows a loading state, parses structured feedback, and supports retry after safe errors. Android emulator networking to the host backend was verified by requesting `/health` at `10.0.2.2:3000`; a full resume analysis on-device and live provider request were not made. `backend/.env` is absent and ignored by Git. The current server reports `ANALYSIS_UNAVAILABLE` if it starts without `OPENAI_API_KEY`; the Flutter message now tells the developer how to configure it. A successful `/health` response only confirms the server is listening, not that the provider is configured.
 
 ## Current architecture
 
 - **Flutter:** The app lives at the repository root. `lib/screens/resume_selection_screen.dart` selects PDF/DOCX files up to 10 MiB, requests processing consent, and gathers an optional target role. `lib/services/resume_analysis_api.dart` sends the multipart upload to `POST /api/v1/analyses`; progress, retryable errors, and structured result screens are implemented. The API base URL can be set with `--dart-define=API_BASE_URL=...`.
 - **Backend:** `backend/` is an Express 5 / Zod 4 API. `GET /health` reports service status. `POST /api/v1/analyses` accepts one multipart `resume` file (PDF or DOCX, up to 10 MiB) and optional `targetRole` (up to 200 characters), validates extension/signature/size, extracts text in memory, and calls an injected analyzer. Extracted text is limited to 100,000 characters. Files are not written to disk or logged by application code. PDFs without embedded text return an explicit error; OCR is not implemented.
-- **Provider:** `backend/src/providers/resume_analyzer.js` uses OpenAI Responses API with structured output and a configurable `OPENAI_MODEL` default. It reads `OPENAI_API_KEY` only on the backend, uses `store: false`, and has a 30-second SDK timeout. No real key or model call was used. Output has summary, evidence-based strengths and improvements, and missing-information notes; no numeric score or hiring prediction.
-- **Tests and dependencies:** Flutter `dart format`, `flutter analyze`, and `flutter test` pass locally. Backend `npm run check` and eight mocked tests pass with installed dependencies. `backend/package-lock.json` has not been refreshed because npm registry DNS access failed; clean install is unverified. No commit is authorized.
+- **Provider:** `backend/src/providers/resume_analyzer.js` uses OpenAI Responses API with structured output and a configurable `OPENAI_MODEL` default. OpenAI's model page lists `gpt-5.6-terra` as supporting Responses and Structured Outputs. It reads `OPENAI_API_KEY` only on the backend, uses `store: false`, and has a 30-second SDK timeout. No real key or model call was used. Output has summary, evidence-based strengths and improvements, and missing-information notes; no numeric score or hiring prediction.
+- **Configuration:** `npm start` runs Node's `--env-file-if-exists=.env` from `backend/`; this was verified with a temporary sentinel value and no real secret. `backend/.gitignore` excludes `.env`; no local `backend/.env` exists. Keep keys out of Flutter and Android.
+- **Tests and dependencies:** `npm install` succeeded and reported the lockfile up to date; `npm run check` and all ten backend tests pass. `flutter analyze` and all 16 Flutter tests pass; the compile-time `API_BASE_URL` test also passes when run with a `--dart-define`. Clean `npm ci` was not run. No commit is authorized.
 - **Privacy/production:** Authentication, consent, retention/deletion, provider data handling, and deployment controls remain open before processing real resumes in production. `store: false` does not replace a review of current provider terms and project privacy requirements.
 - **CI:** `.github/workflows/flutter.yml` runs Flutter and backend CI on pushes and pull requests. GitHub Actions has not been observed for this branch.
 
@@ -37,7 +38,7 @@ flutter test
 flutter run
 ```
 
-Backend setup after restoring npm registry access:
+Backend setup (see README for secure PowerShell key entry):
 
 ```powershell
 cd backend
@@ -51,15 +52,15 @@ npm start
 
 ## Verification record
 
-**Verified locally on 22 October 2026:** `dart format lib test` and format check, `flutter analyze`, all 15 Flutter tests, `flutter build apk --debug`, backend `npm run check`, and all eight mocked backend tests pass. The Flutter test suite covers request construction, safe API errors, consent, retry, and rendering returned analysis content.
+**Verified locally on 22 October 2026:** `npm install` (up to date, zero audit findings), `npm run check`, ten backend tests, Dart formatting, `flutter analyze`, 16 Flutter tests, and a separate passing `API_BASE_URL` override test. A test confirmed Node loads env files without printing their values. `git check-ignore` confirms `backend/.env` is ignored. Windows and Android emulator both reached the host health endpoint; emulator request to `http://10.0.2.2:3000/health` returned `{"status":"ok"}`.
 
-**Not verified for the current backend source:** clean dependency installation/lockfile consistency, PDF/DOCX extraction against real synthetic files, or live provider access. Both the sandboxed and elevated npm install attempts failed because DNS lookup for `registry.npmjs.org` failed. The mocked API tests passed with current local packages. No live OpenAI call was made. `flutter devices` listed Windows and browser targets but no Android emulator/device; `flutter run` on Android and GitHub CI have not been verified.
+**Not verified:** `npm ci`, PDF/DOCX extraction against synthetic documents, live OpenAI credentials/provider request, full Android upload/analysis flow, and GitHub CI. The active port 3000 listener was already running; a second `npm start` reported `EADDRINUSE`, so preserve that process and restart it from the intended terminal after setting a developer-owned key.
 
 ## Next steps
 
-1. Restore npm registry access, refresh `backend/package-lock.json`, and verify a clean `npm ci`.
-2. Verify PDF/DOCX extraction with synthetic documents; do not use a live resume for this step.
-3. Launch Flutter on an Android emulator/device and verify the server connection; inspect GitHub CI separately.
+1. Add the developer's own `OPENAI_API_KEY` to the backend process environment or ignored `backend/.env`, restart the server, and verify one intentional test analysis. Never paste the key into Flutter or commit it.
+2. Verify PDF/DOCX extraction with synthetic documents and finish the full upload flow on the emulator.
+3. Run `npm ci` from the current lockfile, then inspect GitHub CI separately.
 4. Resolve authentication, retention/deletion, provider data handling, and production deployment decisions before production use.
 
 ## Keeping the handover current

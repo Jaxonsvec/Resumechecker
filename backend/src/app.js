@@ -91,7 +91,7 @@ export function createApp({
         return sendError(res, error.status, error.code, error.message);
       }
       if (error?.code === 'PROVIDER_NOT_CONFIGURED') {
-        return sendError(res, 503, 'ANALYSIS_UNAVAILABLE', 'Resume analysis is not configured on this server.');
+        return sendError(res, 503, 'ANALYSIS_UNAVAILABLE', 'Set OPENAI_API_KEY in backend/.env or the server environment, then restart the backend.');
       }
       if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
         return sendError(res, 504, 'ANALYSIS_TIMEOUT', 'Resume analysis took too long. Please try again.');

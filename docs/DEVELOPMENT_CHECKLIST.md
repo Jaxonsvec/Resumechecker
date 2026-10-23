@@ -8,8 +8,8 @@ Use this checklist as the team's source of truth for building the application. W
 
 - **Completed:** 1.2–1.6, 2.2–2.6, 3.1–3.7, 4.1, 4.3, 4.4, 4.6, 4.8, 5.1, 5.6, 5.7, 5.9, 6.1–6.7, 7.2–7.4, 7.8, 9.5, 10.4, 10.5, and 10.6. Evidence is noted beside each checked item.
 - **In progress:** 2.1 — a draft flow is represented in the prototype, but the team has not confirmed it. Item 2.7 is waiting for team review.
-- **Next:** Refresh and verify the backend dependency lockfile after npm registry access returns, then test PDF/DOCX extraction with synthetic documents and verify the connected flow on an Android emulator/device.
-- **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Clean-install reproducibility, extraction against synthetic files, live provider execution, Android device execution, and GitHub CI are not verified.
+- **Next:** Add a developer-owned OpenAI API key locally, restart the backend with it, then verify a real analysis request. Synthetic PDF/DOCX extraction and full upload flow on Android remain to be checked.
+- **Remaining:** All unchecked items below; see dependency and acceptance gates near the end. Clean `npm ci`, extraction against synthetic documents, live provider execution, full Android analysis, and GitHub CI are not verified.
 
 ## Phase 1: Project Foundation
 
@@ -44,25 +44,25 @@ Use this checklist as the team's source of truth for building the application. W
 ## Phase 4: Backend and Resume Processing
 
 - [x] 4.1 — Finalize the API contract and analysis request/response models. *(Multipart contract and structured response schema are documented in `docs/API.md`; mocked API success/error cases pass.)*
-- [ ] 4.2 — Configure backend environment variables and local development instructions. *(The `PORT` validation, `.env` loading option, and local instructions are present, but startup with configured environment values has not been verified.)*
+- [x] 4.2 — Configure backend environment variables and local development instructions. *(Node's `--env-file-if-exists` loaded a temporary sentinel env file; `.env` is ignored by Git; README documents local key setup and restart steps. No real key was used.)*
 - [x] 4.3 — Implement and test resume upload handling. *(In-memory multipart upload success, missing file, unsupported extension, and oversized file cases pass mocked API tests.)*
 - [x] 4.4 — Validate uploaded files on the server. *(Extension/signature rejection and the 10 MiB limit pass tests; extracted text is capped at 100,000 characters.)*
 - [ ] 4.5 — Implement text extraction for supported resume formats. *(PDF and DOCX extraction implemented in source; verification pending.)*
 - [x] 4.6 — Handle scanned PDFs and unsupported documents appropriately. *(Unsupported types and PDFs without extractable text return explicit errors; route behavior is tested. OCR is not implemented.)*
 - [ ] 4.7 — Add consistent API errors, request limits, and timeouts. *(Shared JSON errors, upload/text limits, SDK request timeout, and route timeout are implemented; verification pending.)*
-- [x] 4.8 — Test the backend independently of the Flutter application. *(Verified locally: `npm run check` and all eight `npm test` API/unit tests passed. A clean `npm ci` has not been verified because the lockfile is stale.)*
+- [x] 4.8 — Test the backend independently of the Flutter application. *(Verified locally: `npm run check` and all ten `npm test` API/unit tests passed. `npm install` reports the lockfile is up to date; clean `npm ci` has not been run.)*
 
 ## Phase 5: AI Resume Analysis
 
 - [x] 5.1 — Confirm the analysis criteria and expected output with the team. *(User directed us to proceed without waiting for design preferences; default output is a summary, evidence-based strengths/improvements, and missing information, without scores or hiring predictions.)*
 - [ ] 5.2 — Finalize the AI provider and model configuration. *(OpenAI Responses API and `OPENAI_MODEL` configuration are implemented; live availability is not verified.)*
-- [ ] 5.3 — Securely configure the provider API key on the backend. *(Reads only `OPENAI_API_KEY` from backend environment; no actual key was supplied or used.)*
+- [ ] 5.3 — Securely configure the provider API key on the backend. *(Reads only `OPENAI_API_KEY` from backend environment; no actual key was supplied or used. The app now shows local setup steps when it is missing.)*
 - [ ] 5.4 — Create a structured analysis prompt. *(Implemented with evidence and non-inference requirements.)*
 - [ ] 5.5 — Implement the server-side AI request. *(OpenAI Responses API adapter implemented; live call not made.)*
 - [x] 5.6 — Validate the AI response against a defined schema. *(Structured output schema and server-side Zod validation are implemented; malformed analysis results return a tested safe error.)*
 - [x] 5.7 — Return actionable feedback, strengths, weaknesses, and improvement suggestions. *(Mocked success returns summary, evidence-backed strengths/improvements, and missing information; no numeric score.)*
 - [ ] 5.8 — Handle provider errors, rate limits, invalid responses, and timeouts. *(Safe mappings implemented; runtime verification pending.)*
-- [x] 5.9 — Add automated tests using mocked AI responses. *(All eight backend tests pass; provider requests are injected/mocked and no live calls are made.)*
+- [x] 5.9 — Add automated tests using mocked AI responses. *(All ten backend tests pass; provider requests are injected/mocked and no live calls are made.)*
 - [ ] 5.10 — Evaluate the results with sample or synthetic resumes before release.
 
 ## Phase 6: Connect Flutter to the Backend
@@ -103,7 +103,7 @@ Use this checklist as the team's source of truth for building the application. W
 - [ ] 9.2 — Add widget tests for the main screens and interactions.
 - [ ] 9.3 — Add backend unit and API integration tests.
 - [ ] 9.4 — Test invalid uploads, network failures, and AI provider errors.
-- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 22 October 2026: Dart format check, Flutter analysis, all 15 Flutter tests, backend syntax check, and all eight backend tests passed.)*
+- [x] 9.5 — Run formatting, static analysis, and all automated tests. *(Verified locally on 22 October 2026: Dart format check, Flutter analysis, all 16 Flutter tests, backend syntax check, and all ten backend tests passed. URL override has a separate passing targeted test.)*
 - [ ] 9.6 — Build a release-mode Android APK.
 - [ ] 9.7 — Perform end-to-end testing on a real device or emulator.
 - [ ] 9.8 — Have a teammate test the app using the documented setup guide.
