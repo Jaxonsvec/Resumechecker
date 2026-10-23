@@ -123,10 +123,8 @@ class HttpResumeAnalysisApi implements ResumeAnalysisApi {
       'INVALID_RESUME_TEXT' =>
         'We could not find enough readable text in this resume.',
       'ANALYSIS_UNAVAILABLE' => 'Resume analysis is not configured. Set OPENAI_API_KEY in backend/.env and restart the backend.',
-      'OLLAMA_UNAVAILABLE' =>
-        'The local Ollama service is unavailable. Start Ollama and check OLLAMA_BASE_URL.',
-      'OLLAMA_MODEL_NOT_FOUND' =>
-        'The configured Ollama model is not installed. Pull OLLAMA_MODEL and retry.',
+      'OLLAMA_UNAVAILABLE' => 'The local Ollama service is unavailable. Start Ollama and check OLLAMA_BASE_URL.',
+      'OLLAMA_MODEL_NOT_FOUND' => 'The configured Ollama model is not installed. Pull OLLAMA_MODEL and retry.',
       'ANALYSIS_BUSY' || 'ANALYSIS_TIMEOUT' =>
         'The analysis service is busy. Please try again in a moment.',
       _ when statusCode >= 500 =>
