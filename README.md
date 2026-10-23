@@ -1,6 +1,6 @@
 # Airesume
 
-A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls the selected server-side provider: OpenAI or local Ollama. Provider credentials remain on the backend, never in Flutter. Automated provider tests use mocks. A real local Ollama structured-analysis request with synthetic resume text returned HTTP 200 on this machine; no live OpenAI request was made.
+A Flutter-first AI resume analysis and improvement app. The connected flow selects PDF/DOCX files up to 10 MiB, gets consent, uploads to the Express backend, and displays a rubric-based score, category explanations, strengths, prioritized feedback, and factual rewrite suggestions. Revised text can be edited and regraded through the same API. The app also offers five fictional local examples, score comparisons, and on-device OCR for JPG/PNG images with an editable text preview. The backend calls the selected server-side provider: OpenAI or local Ollama. Provider credentials remain on the backend. A real local Ollama structured-analysis request with synthetic resume text previously returned HTTP 200; current scoring changes still require fresh live inference verification.
 
 ## Start here
 
@@ -46,7 +46,7 @@ The Flutter and Dart versions were confirmed by the SDK and CLI. The available c
 
    Select a running Android emulator or connected device when prompted. To target a device explicitly, run `flutter devices`, then `flutter run -d <device-id>`.
 
-The dependency lockfile is committed. Use `flutter pub get` for normal setup; do not routinely run broad dependency upgrades.
+The dependency lockfile is committed. Use `flutter pub get` for normal setup; do not routinely run broad dependency upgrades. Image selection and on-device ML Kit OCR are supported on Android/iOS; OCR is not available in Windows desktop or web builds.
 
 ## Troubleshooting (PowerShell / Android)
 
@@ -60,7 +60,7 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 
 ## Project layout
 
-- `lib/` — Flutter app
+- `lib/` — Flutter app, local example library, editable revision flow, and on-device image OCR
 - `test/` — Flutter widget tests
 - `android/` — Android project configuration
 - `backend/` — Express API, PDF/DOCX extraction, and OpenAI/local Ollama analysis adapters
@@ -68,7 +68,7 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 - [Development checklist](docs/DEVELOPMENT_CHECKLIST.md) — feature-by-feature team work plan
 - `.github/workflows/` — Flutter CI
 
-The **Choose a resume** action opens the connected PDF/DOCX analysis flow. After you accept the processing notice and press **Analyze resume**, the app uploads the document to the configured backend, which extracts text and sends it to the configured analysis provider. The backend does not store the uploaded file. The API and results UI show a summary, evidence-based strengths, improvements, and missing information. **Paste resume** runs local rule-based checks on the entered text; **Select a file locally** only demonstrates native PDF/DOCX selection and does not upload or analyze that selected file. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for setup and limitations.
+The **Choose a resume** action opens the connected PDF/DOCX analysis flow. After you accept the processing notice and press **Analyze resume**, the app uploads the document to the backend, which extracts text and sends it to the configured provider. The backend does not store the uploaded file. Results include a documented five-category 0–100 rubric, factual writing suggestions, optional job relevance, and score explanations. Users can open **Edit Resume**, apply or reject individual rewrites, manually revise the text, and explicitly consent before regrading the current revision. Results can be compared against the local fictional examples. **Upload a resume picture** runs OCR on-device, allows text corrections, then uses the same analysis API. The image itself is not uploaded; the platform picker may keep a temporary cache copy. OCR output may need correction, and reconstructed text editing does not preserve document layout. Session revisions are not saved across app restarts or devices. **Paste resume** remains a separate local rule-based checker; **Select a file locally** remains a metadata-only preview. See [scoring rubric](docs/SCORING_RUBRIC.md), [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md).
 
 ## Backend (optional during Flutter development)
 

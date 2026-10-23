@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { createResumeAnalyzer } from '../src/providers/resume_analyzer.js';
 
 const expectedAnalysis = {
+  overall_score: 80,
+  category_scores: Object.fromEntries(['clarity', 'impact', 'measurable_results', 'skills_experience', 'formatting_organization'].map((key) => [key, { score: 80, explanation: 'Evidence supports a solid assessment in this category.' }])),
   summary: 'Evidence-based summary.',
   strengths: [{ title: 'Leadership', evidence: 'Led a team of four.' }],
   improvements: [{
@@ -11,7 +13,10 @@ const expectedAnalysis = {
     recommendation: 'Add a truthful result where available.',
   }],
   missing_information: ['Education details'],
+  suggested_rewrites: [{ section: 'Experience', original_text: 'Led a team of four.', revised_text: 'Led a four-person team.', rationale: 'Keeps the supplied fact and makes the phrasing concise.' }],
+  job_relevance: { score: 75, relevant_skills: ['Leadership'], missing_skills: [], transferable_skills: ['Team coordination'] },
 };
+const { overall_score: _fixtureOverallScore, ...providerAnalysis } = expectedAnalysis;
 
 test('provider sends the structured prompt through Responses and validates the result', async () => {
   let request;
@@ -24,7 +29,7 @@ test('provider sends the structured prompt through Responses and validates the r
         async parse(body, options) {
           request = body;
           requestOptions = options;
-          return { status: 'completed', output_parsed: expectedAnalysis };
+          return { status: 'completed', output_parsed: providerAnalysis };
         },
       },
     },
@@ -47,6 +52,23 @@ test('provider sends the structured prompt through Responses and validates the r
   assert.equal(request.text.format.name, 'resume_analysis');
 });
 
+test('provider derives the overall score and drops rewrite text absent from the source', async () => {
+  const respondWith = (value) => createResumeAnalyzer({
+    apiKey: 'test-only-placeholder',
+    client: { responses: { async parse() { return { status: 'completed', output_parsed: value }; } } },
+  });
+  const derived = await respondWith(providerAnalysis).analyze({ resumeText: 'Led a team of four.', targetRole: 'Engineer' });
+  assert.equal(derived.overall_score, 80);
+  const ungrounded = await respondWith({ ...providerAnalysis, suggested_rewrites: [{ ...providerAnalysis.suggested_rewrites[0], original_text: 'Unsupported statement.' }] })
+    .analyze({ resumeText: 'Led a team of four.', targetRole: 'Engineer' });
+  assert.deepEqual(ungrounded.suggested_rewrites, []);
+  await assert.rejects(
+    respondWith({ ...providerAnalysis, category_scores: { ...providerAnalysis.category_scores, clarity: { score: 101, explanation: 'Invalid.' }, impact: { score: 80, explanation: 'Clear.' }, measurable_results: { score: 80, explanation: 'Clear.' }, skills_experience: { score: 80, explanation: 'Clear.' }, formatting_organization: { score: 80, explanation: 'Clear.' } } })
+      .analyze({ resumeText: 'Led a team of four.', targetRole: 'Engineer' }),
+    { name: 'ZodError' },
+  );
+});
+
 test('AI_PROVIDER selects local Ollama without an OpenAI key and validates structured output', async () => {
   let requestUrl;
   let requestOptions;
@@ -61,7 +83,7 @@ test('AI_PROVIDER selects local Ollama without an OpenAI key and validates struc
       return {
         ok: true,
         async json() {
-          return { message: { content: JSON.stringify(expectedAnalysis) } };
+          return { message: { content: JSON.stringify(providerAnalysis) } };
         },
       };
     },
@@ -87,6 +109,7 @@ test('AI_PROVIDER selects local Ollama without an OpenAI key and validates struc
   assert.equal(body.messages[1].content, 'Target role: Engineering manager\n\nResume text:\nSynthetic resume: Led a team of four.');
   assert.equal(body.format.type, 'object');
   assert.ok(body.format.properties.strengths);
+  assert.equal(body.format.properties.overall_score, undefined);
 });
 
 test('local Ollama request failures are mapped without exposing service details', async () => {

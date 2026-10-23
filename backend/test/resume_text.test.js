@@ -12,3 +12,10 @@ test('resume extraction rejects fake PDF and DOCX files by signature', async () 
     (error) => error instanceof ResumeFileError && error.code === 'INVALID_FILE',
   );
 });
+
+test('corrupt PDFs return a safe invalid-file error', async () => {
+  await assert.rejects(
+    extractResumeText({ originalname: 'resume.pdf', buffer: Buffer.from('%PDF- corrupt content') }),
+    (error) => error instanceof ResumeFileError && error.code === 'INVALID_FILE' && /corrupt or password-protected/.test(error.message),
+  );
+});

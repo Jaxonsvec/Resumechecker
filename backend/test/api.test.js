@@ -9,6 +9,8 @@ let server;
 let baseUrl;
 let seenInput;
 const expectedAnalysis = {
+  overall_score: 80,
+  category_scores: Object.fromEntries(['clarity', 'impact', 'measurable_results', 'skills_experience', 'formatting_organization'].map((key) => [key, { score: 80, explanation: 'Evidence supports a solid assessment in this category.' }])),
   summary: 'Clear, concise resume with relevant experience.',
   strengths: [{ title: 'Relevant experience', evidence: 'Led a team of four.' }],
   improvements: [{
@@ -17,6 +19,8 @@ const expectedAnalysis = {
     recommendation: 'Add a truthful result or scale where available.',
   }],
   missing_information: ['Education details'],
+  suggested_rewrites: [{ section: 'Experience', original_text: 'Led a team of four.', revised_text: 'Led a four-person team.', rationale: 'Keeps the supplied fact and makes the phrasing concise.' }],
+  job_relevance: { score: 75, relevant_skills: ['Leadership'], missing_skills: [], transferable_skills: ['Team coordination'] },
 };
 
 before(async () => {
@@ -59,11 +63,41 @@ test('analysis uploads a resume, passes extracted text to the analyzer, and vali
     body: uploadForm({ targetRole: 'Product engineer' }),
   });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { analysis: expectedAnalysis });
+  assert.deepEqual(await response.json(), { analysis: expectedAnalysis, resume_text: 'Synthetic resume text. Led a team of four.', target_role: 'Product engineer' });
   assert.deepEqual(seenInput, {
     resumeText: 'Synthetic resume text. Led a team of four.',
     targetRole: 'Product engineer',
   });
+});
+
+test('text analysis regrades the exact edited resume without requiring another upload', async () => {
+  const editedResume = 'Edited synthetic resume with new truthful details. Led a team of four.';
+  const response = await fetch(`${baseUrl}/api/v1/analyses/text`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ resumeText: editedResume, targetRole: 'Product engineer' }),
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(seenInput, { resumeText: editedResume, targetRole: 'Product engineer' });
+  const payload = await response.json();
+  assert.equal(payload.resume_text, editedResume);
+  assert.equal(payload.target_role, 'Product engineer');
+  assert.deepEqual(payload.analysis, expectedAnalysis);
+});
+
+test('text analysis validates empty, oversized, and malformed requests', async () => {
+  const send = (body) => fetch(`${baseUrl}/api/v1/analyses/text`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const empty = await send({ resumeText: '   ' });
+  assert.equal(empty.status, 422);
+  assert.equal((await empty.json()).error.code, 'INVALID_RESUME_TEXT');
+  const oversized = await send({ resumeText: 'x'.repeat(100001) });
+  assert.equal(oversized.status, 422);
+  assert.equal((await oversized.json()).error.code, 'INVALID_RESUME_TEXT');
+  const malformed = await send({ resumeText: 42 });
+  assert.equal(malformed.status, 400);
+  assert.equal((await malformed.json()).error.code, 'INVALID_REQUEST');
 });
 
 test('analysis requires a resume and rejects unsupported extensions', async () => {

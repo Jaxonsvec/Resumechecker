@@ -51,6 +51,59 @@ export function createApp({
     return res.status(200).json(HealthResponseSchema.parse({ status: 'ok' }));
   });
 
+  const runAnalysis = async (resumeText, targetRole, res) => {
+    if (!resumeText.trim() || resumeText.length > 100_000) {
+      return sendError(res, 422, 'INVALID_RESUME_TEXT', 'The resume must contain readable text and be 100,000 characters or fewer.');
+    }
+    try {
+      const analysis = AnalysisResultSchema.parse(await analyzer.analyze({
+        resumeText,
+        ...(targetRole ? { targetRole } : {}),
+      }, { signal: AbortSignal.timeout(analyzer.timeoutMs ?? 35_000) }));
+      const scores = Object.values(analysis.category_scores).map(({ score }) => score);
+      const expectedOverall = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+      if (analysis.overall_score !== expectedOverall ||
+          (targetRole && analysis.job_relevance === null) ||
+          (!targetRole && analysis.job_relevance !== null) ||
+          analysis.suggested_rewrites.some(({ original_text }) => !resumeText.includes(original_text))) {
+        return sendError(res, 502, 'INVALID_ANALYSIS_RESPONSE', 'The analysis service returned an invalid result.');
+      }
+      return res.status(200).json({ analysis, resume_text: resumeText, target_role: targetRole || null });
+    } catch (error) {
+      if (error?.code === 'PROVIDER_NOT_CONFIGURED') {
+        return sendError(res, 503, 'ANALYSIS_UNAVAILABLE', 'Set OPENAI_API_KEY in backend/.env or the server environment, then restart the backend.');
+      }
+      if (error?.code === 'OLLAMA_UNAVAILABLE') {
+        return sendError(res, 503, 'OLLAMA_UNAVAILABLE', 'The local Ollama service is unavailable. Start Ollama and check OLLAMA_BASE_URL.');
+      }
+      if (error?.code === 'OLLAMA_MODEL_NOT_FOUND') {
+        return sendError(res, 503, 'OLLAMA_MODEL_NOT_FOUND', 'The configured Ollama model is not installed. Pull OLLAMA_MODEL and retry.');
+      }
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+        return sendError(res, 504, 'ANALYSIS_TIMEOUT', 'Resume analysis took too long. Please try again.');
+      }
+      if (error?.code === 'INVALID_PROVIDER_RESPONSE' || error instanceof Error && error.name === 'ZodError') {
+        return sendError(res, 502, 'INVALID_ANALYSIS_RESPONSE', 'The analysis service returned an invalid result.');
+      }
+      if (error?.status === 429) {
+        return sendError(res, 503, 'ANALYSIS_BUSY', 'The analysis service is busy. Please try again shortly.');
+      }
+      return sendError(res, 502, 'ANALYSIS_FAILED', 'Resume analysis could not be completed. Please try again.');
+    }
+  };
+
+  app.post('/api/v1/analyses/text', async (req, res) => {
+    const { resumeText, targetRole } = req.body ?? {};
+    if (typeof resumeText !== 'string' || (targetRole !== undefined && typeof targetRole !== 'string')) {
+      return sendError(res, 400, 'INVALID_REQUEST', 'Provide resumeText and an optional targetRole as text.');
+    }
+    const cleanedTargetRole = targetRole?.trim() ?? '';
+    if (cleanedTargetRole.length > 200) {
+      return sendError(res, 400, 'INVALID_REQUEST', 'The request did not match the analysis request format.', { targetRole: ['Must be 200 characters or fewer.'] });
+    }
+    return runAnalysis(resumeText, cleanedTargetRole, res);
+  });
+
   app.post('/api/v1/analyses', upload.single('resume'), async (req, res) => {
     if (!req.file) {
       return sendError(res, 400, 'INVALID_REQUEST', 'Attach a PDF or DOCX file in the resume field.', {
@@ -78,14 +131,7 @@ export function createApp({
 
     try {
       const resumeText = await textExtractor(req.file);
-      if (!resumeText.trim() || resumeText.length > 100_000) {
-        return sendError(res, 422, 'INVALID_RESUME_TEXT', 'The resume must contain readable text and be 100,000 characters or fewer.');
-      }
-      const analysis = AnalysisResultSchema.parse(await analyzer.analyze({
-        resumeText,
-        ...(targetRole ? { targetRole } : {}),
-      }, { signal: AbortSignal.timeout(analyzer.timeoutMs ?? 35_000) }));
-      return res.status(200).json({ analysis });
+      return runAnalysis(resumeText, targetRole, res);
     } catch (error) {
       if (error instanceof ResumeFileError) {
         return sendError(res, error.status, error.code, error.message);

@@ -13,6 +13,11 @@ abstract interface class ResumeAnalysisApi {
     required Future<Uint8List> Function() readBytes,
     String? targetRole,
   });
+
+  Future<ResumeAnalysis> analyzeText({
+    required String resumeText,
+    String? targetRole,
+  });
 }
 
 class HttpResumeAnalysisApi implements ResumeAnalysisApi {
@@ -67,19 +72,7 @@ class HttpResumeAnalysisApi implements ResumeAnalysisApi {
       if (response.statusCode != 200) {
         throw _apiException(payload, response.statusCode);
       }
-      final analysis = payload['analysis'];
-      if (analysis is! Map<String, dynamic>) {
-        throw const ResumeAnalysisException(
-          'The analysis service returned an incomplete result. Please try again.',
-        );
-      }
-      try {
-        return ResumeAnalysis.fromJson(analysis);
-      } on FormatException {
-        throw const ResumeAnalysisException(
-          'The analysis service returned an incomplete result. Please try again.',
-        );
-      }
+      return _parseAnalysis(payload);
     } on ResumeAnalysisException {
       rethrow;
     } on http.ClientException {
@@ -100,6 +93,80 @@ class HttpResumeAnalysisApi implements ResumeAnalysisApi {
       );
     } finally {
       if (ownsClient) client.close();
+    }
+  }
+
+  @override
+  Future<ResumeAnalysis> analyzeText({
+    required String resumeText,
+    String? targetRole,
+  }) async {
+    if (resumeText.trim().isEmpty || resumeText.length > 100000) {
+      throw const ResumeAnalysisException(
+        'Resume text must contain 1 to 100,000 characters.',
+      );
+    }
+    final cleanedTargetRole = targetRole?.trim() ?? '';
+    if (cleanedTargetRole.length > 200) {
+      throw const ResumeAnalysisException(
+        'The target role must be 200 characters or fewer.',
+      );
+    }
+    final client = _client ?? http.Client();
+    final ownsClient = _client == null;
+    try {
+      final uri = Uri.parse('$_baseUrl/api/v1/analyses/text');
+      final response = await client
+          .post(
+            uri,
+            headers: {'content-type': 'application/json'},
+            body: jsonEncode({
+              'resumeText': resumeText,
+              if (cleanedTargetRole.isNotEmpty) 'targetRole': cleanedTargetRole,
+            }),
+          )
+          .timeout(const Duration(minutes: 3, seconds: 30));
+      final payload = _decodeJson(response.bodyBytes);
+      if (response.statusCode != 200) {
+        throw _apiException(payload, response.statusCode);
+      }
+      return _parseAnalysis(payload);
+    } on ResumeAnalysisException {
+      rethrow;
+    } on http.ClientException {
+      throw const ResumeAnalysisException(
+        'Could not reach the analysis server. Check the connection and try again.',
+      );
+    } on TimeoutException {
+      throw const ResumeAnalysisException(
+        'The analysis server took too long to respond. Please try again.',
+      );
+    } on FormatException {
+      throw const ResumeAnalysisException(
+        'The analysis service returned an incomplete result. Please try again.',
+      );
+    } finally {
+      if (ownsClient) client.close();
+    }
+  }
+
+  ResumeAnalysis _parseAnalysis(Map<String, dynamic> payload) {
+    final analysis = payload['analysis'];
+    if (analysis is! Map<String, dynamic>) {
+      throw const ResumeAnalysisException(
+        'The analysis service returned an incomplete result. Please try again.',
+      );
+    }
+    try {
+      return ResumeAnalysis.fromJson({
+        ...analysis,
+        '_source_resume_text': payload['resume_text'],
+        '_target_role': payload['target_role'],
+      });
+    } on FormatException {
+      throw const ResumeAnalysisException(
+        'The analysis service returned an incomplete result. Please try again.',
+      );
     }
   }
 

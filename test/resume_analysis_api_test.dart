@@ -9,6 +9,21 @@ import 'package:airesume/services/resume_analysis_api.dart';
 
 void main() {
   final analysisJson = {
+    'overall_score': 80,
+    'category_scores': {
+      for (final key in [
+        'clarity',
+        'impact',
+        'measurable_results',
+        'skills_experience',
+        'formatting_organization',
+      ])
+        key: {
+          'score': 80,
+          'explanation':
+              'Evidence supports a solid assessment in this category.',
+        },
+    },
     'summary': 'A focused resume with relevant experience.',
     'strengths': [
       {'title': 'Leadership', 'evidence': 'Led a team of four.'},
@@ -21,6 +36,20 @@ void main() {
       },
     ],
     'missing_information': ['Education details'],
+    'suggested_rewrites': [
+      {
+        'section': 'Experience',
+        'original_text': 'Led a team of four.',
+        'revised_text': 'Led a four-person team.',
+        'rationale': 'Keeps the supplied fact and makes the phrasing concise.',
+      },
+    ],
+    'job_relevance': {
+      'score': 75,
+      'relevant_skills': ['Leadership'],
+      'missing_skills': [],
+      'transferable_skills': ['Team coordination'],
+    },
   };
 
   test(
@@ -30,7 +59,11 @@ void main() {
       final client = MockClient((request) async {
         capturedRequest = request;
         return http.Response(
-          jsonEncode({'analysis': analysisJson}),
+          jsonEncode({
+            'analysis': analysisJson,
+            'resume_text': 'Synthetic resume text. Led a team of four.',
+            'target_role': 'Product engineer',
+          }),
           200,
           headers: {'content-type': 'application/json'},
         );
@@ -60,12 +93,46 @@ void main() {
       expect(capturedRequest!.body, contains('name="targetRole"'));
       expect(capturedRequest!.body, contains('Product engineer'));
       expect(result.summary, analysisJson['summary']);
+      expect(result.targetRole, 'Product engineer');
       expect(result.strengths.single.title, 'Leadership');
       expect(
         result.improvements.single.recommendation,
         contains('truthful result'),
       );
       expect(result.missingInformation, ['Education details']);
+      client.close();
+    },
+  );
+
+  test(
+    'regrades the exact edited text through the text analysis endpoint',
+    () async {
+      http.Request? captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(
+          jsonEncode({
+            'analysis': analysisJson,
+            'resume_text': 'Edited resume text',
+            'target_role': 'Product engineer',
+          }),
+          200,
+        );
+      });
+      final api = HttpResumeAnalysisApi(
+        client: client,
+        baseUrl: 'http://localhost:3000',
+      );
+      final result = await api.analyzeText(
+        resumeText: 'Edited resume text',
+        targetRole: 'Product engineer',
+      );
+      expect(captured!.url.path, '/api/v1/analyses/text');
+      expect(jsonDecode(captured!.body), {
+        'resumeText': 'Edited resume text',
+        'targetRole': 'Product engineer',
+      });
+      expect(result.sourceResumeText, 'Edited resume text');
       client.close();
     },
   );
@@ -259,5 +326,14 @@ void main() {
       () => ResumeAnalysis.fromJson({'summary': 'Missing sections'}),
       throwsFormatException,
     );
+  });
+
+  test('rejects out-of-range scores and inconsistent rubric categories', () {
+    final invalid = Map<String, dynamic>.from(analysisJson)
+      ..['overall_score'] = 101;
+    expect(() => ResumeAnalysis.fromJson(invalid), throwsFormatException);
+    final mismatch = Map<String, dynamic>.from(analysisJson)
+      ..['overall_score'] = 79;
+    expect(() => ResumeAnalysis.fromJson(mismatch), throwsFormatException);
   });
 }
