@@ -37,7 +37,7 @@ void main() {
     await tester.drag(list, const Offset(0, -2000));
     await tester.pumpAndSettle();
     expect(position.pixels, position.maxScrollExtent);
-    final footer = find.text('Pasted text is checked locally on this device.');
+    final footer = find.textContaining('Choose a resume to send it');
     final footerBounds = tester.getRect(footer);
 
     final bottomDrag = await tester.startGesture(tester.getCenter(list));

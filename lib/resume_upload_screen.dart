@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'main.dart' show ResumeInputScreen;
 import 'resume_file_picker.dart';
+import 'screens/resume_input_screen.dart';
 
 class ResumeUploadScreen extends StatefulWidget {
   const ResumeUploadScreen({
@@ -81,7 +81,7 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
                       const Icon(Icons.description_outlined),
                       const SizedBox(height: 12),
                       Text(
-                        selected.file.name,
+                        selected.name,
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),

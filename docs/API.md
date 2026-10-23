@@ -1,25 +1,44 @@
-# API contract (foundation)
+# API contract
 
-Base URL is configured for each environment; the app does not yet call this API. The local service defaults to port 3000 (`PORT` environment variable). JSON errors use `{"error":{"code":"...","message":"...","fields":{...}}}`; `fields` is included for request validation failures.
+Base URL is configured for each environment. The backend defaults to port 3000 (`PORT`). Flutter uses `API_BASE_URL` (`http://10.0.2.2:3000` by default on Android emulator; `http://localhost:3000` elsewhere). Set `CORS_ALLOWED_ORIGINS` to the exact Flutter Web origin when using a browser build. JSON errors use `{"error":{"code":"...","message":"...","fields":{...}}}`; `fields` is included for request validation failures. Resume bytes and extracted text are held in memory for the request and are not written to disk or logged by application code.
 
-## Implemented
+## `GET /health`
 
-### `GET /health`
+Returns HTTP 200 with `{"status":"ok"}` while the service accepts requests. It does not verify provider availability.
 
-Returns HTTP 200 with `{"status":"ok"}` while the server is accepting requests. This is a service health check only; it does not indicate that analysis is available.
+## `POST /api/v1/analyses`
 
-### `POST /api/v1/analyses` (validation only)
+Send `multipart/form-data` with one `resume` file and optional `targetRole` text. The file must have a `.pdf` or `.docx` extension and matching PDF or ZIP/DOCX signature. Maximum upload size is 10 MiB; extracted text is limited to 100,000 characters; `targetRole` is limited to 200 characters. The server extracts text in memory and returns analysis feedback without storing the source document.
 
-Accepts JSON with a required `resumeText` string (trimmed length 1–100,000 characters) and optional `targetRole` string (maximum 200 characters). Unknown fields are rejected. Valid input currently returns HTTP 501 `ANALYSIS_NOT_IMPLEMENTED`; it is not analyzed or stored. JSON bodies over 300 KB return 413. Empty or invalid fields return HTTP 400 `INVALID_REQUEST`; malformed JSON returns HTTP 400 `INVALID_JSON`; unknown routes return HTTP 404 `NOT_FOUND`.
+Successful response (HTTP 200):
 
-## Planned, not implemented
+```json
+{
+  "analysis": {
+    "summary": "A concise overall assessment.",
+    "strengths": [{ "title": "Relevant experience", "evidence": "Evidence quoted or summarized from the resume." }],
+    "improvements": [{ "title": "Clarify impact", "evidence": "The listed role has no outcome measure.", "recommendation": "Add a truthful result or scale where available." }],
+    "missing_information": ["Education details"]
+  }
+}
+```
 
-A production upload request format is intentionally undecided until the team selects upload retention and document extraction behavior. The future endpoint should accept a PDF or DOCX resume and an optional target role, enforce a strict byte limit, and return a validated structured analysis. It must never log resume content or provider credentials.
+The response intentionally has no numeric score. Model output is constrained by a Zod/JSON Schema contract. The prompt requests evidence-grounded writing feedback and prohibits invented facts, protected-trait inferences, hiring predictions, and ranking.
 
-Proposed successful response: an analysis id, concise overall feedback, and categorized suggestions with evidence from the supplied resume. Proposed errors use a stable JSON shape with a machine-readable code, safe message, and optional field errors. Authentication, maximum file size, PDF/DOCX extraction limits, timeout behavior, and deletion guarantees still need team decisions.
+Errors: HTTP 400 `INVALID_REQUEST` / `INVALID_UPLOAD`; 413 `FILE_TOO_LARGE`; 415 `UNSUPPORTED_FILE_TYPE`; 422 `INVALID_FILE`, `NO_EXTRACTABLE_TEXT`, or `INVALID_RESUME_TEXT`; 502 `INVALID_ANALYSIS_RESPONSE` / `ANALYSIS_FAILED`; 503 `ANALYSIS_UNAVAILABLE` / `ANALYSIS_BUSY`; 504 `ANALYSIS_TIMEOUT`; 404 `NOT_FOUND`. When the key is missing or left at the example placeholder, `ANALYSIS_UNAVAILABLE` instructs the developer to set `OPENAI_API_KEY` in `backend/.env` or the server environment and restart. Error messages do not include credentials, document text, or provider error details. Scanned/image-only PDFs are rejected because OCR is not implemented.
 
+<<<<<<< HEAD
 The current placeholder accepts resume text for schema validation only and returns 501 for valid requests. No file upload or real AI output is currently returned.
 
 ## Local selection policy
 
 Flutter currently selects PDF/DOCX files up to 5 MiB (5,242,880 bytes), rejecting empty files and unsupported filename extensions. This is a local input policy, not an upload contract or content authenticity check. No API request is made. Server format validation, extraction limits, authentication, and retention remain undecided.
+=======
+## Processing and limitations
+
+The upload handler uses in-memory storage and does not persist files. This is a development implementation; authentication, production deployment controls, retention/deletion policy, and provider data handling still require product/privacy decisions. A configured provider key is required to get analysis; absent keys produce `ANALYSIS_UNAVAILABLE`. OpenAI calls use `store: false`, a 30-second SDK timeout, and one retry. The Flutter client calls this endpoint after explicit processing acknowledgment. It parses the documented response, shows progress, retains the selected file on failure for retry, and renders returned feedback.
+
+The API uses `OPENAI_API_KEY` and `OPENAI_MODEL` from the backend environment. Keep the key server-side; never put it in Flutter or commit a real `.env`. No live provider call is made in automated tests.
+
+The Flutter client parses the documented response and shows an indeterminate progress state while the upload and analysis request runs. It keeps the selected file available if a request fails so the user can retry. The client requires the user to acknowledge that resume text will be sent to the configured AI service before upload.
+>>>>>>> bf7d89571cc4492edd42705af50c5564a64c57d5

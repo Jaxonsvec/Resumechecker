@@ -1,6 +1,6 @@
 # Airesume
 
-A Flutter-first foundation for an AI-assisted resume feedback app. The app supports pasted-text resume checks and local PDF/DOCX file selection. Pasted text reaches reusable rule-based feedback; selected files show their filename and size. File upload, text extraction, file-based analysis, and OpenAI calls are not implemented yet. The original provider/model decision is OpenAI `gpt-5-mini`; any future provider key must live on a backend, never in the Flutter app.
+A Flutter-first AI resume-feedback app. The connected flow selects PDF/DOCX files up to 10 MiB, gets user consent, uploads a selected file and optional target role to the Express backend, shows request progress, and renders structured feedback. A second input lets users paste text for local rule-based checks, and a local file-selection preview demonstrates native selection without analyzing that file. The backend extracts text in memory and calls a server-configured OpenAI model. Provider keys stay on the backend, never in Flutter. Flutter integration tests use mocks; synthetic text-only PDF/DOCX extraction is verified, but a live provider request is not.
 
 ## Start here
 
@@ -18,7 +18,7 @@ AI coding agents must follow [AGENTS.md](AGENTS.md) and read the handover comple
 - Flutter 3.47.7 stable and Dart 3.13.5 (or a compatible newer stable Flutter release satisfying `pubspec.yaml`). The project-local `.fvmrc` records the recommended version for teams using FVM; FVM is optional and its SDK symlink behavior can require extra Windows setup. The SDK itself is installed separately.
 - Git and VS Code with the Flutter extension (or Android Studio).
 - Android Studio Android SDK and an Android emulator or USB-debuggable device to run/build Android. Java 17 is needed by the Android Gradle build.
-- Node.js 22.9 or newer when developing the optional backend.
+- Node.js 22.9 or newer when developing the backend.
 
 The Flutter and Dart versions were confirmed by the SDK and CLI. The available checks and exact results are recorded in [the handover](docs/HANDOVER.md).
 
@@ -63,24 +63,59 @@ The dependency lockfile is committed. Use `flutter pub get` for normal setup; do
 - `lib/` — Flutter app
 - `test/` — Flutter widget tests
 - `android/` — Android project configuration
-- `backend/` — Express API foundation (health check and a clearly unimplemented analysis route)
+- `backend/` — Express API, PDF/DOCX extraction, and OpenAI analysis adapter
 - `docs/` — architecture, proposed API contract, and team handover
 - [Development checklist](docs/DEVELOPMENT_CHECKLIST.md) — feature-by-feature team work plan
 - `.github/workflows/` — Flutter CI
 
+<<<<<<< HEAD
 Choose **Paste resume** to run local checks, or **Upload resume** then **Choose file** to select a PDF/DOCX up to 5 MiB. You can replace or remove the selection; cancellation keeps the previous file. Selected files are not uploaded, parsed, or analyzed. The picker validates the filename extension and size only, not document contents. The backend has a health route and an analysis request validator that returns 501; it does not analyze resumes and no AI provider is connected. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for additional detail.
+=======
+The **Choose a resume** action opens the connected PDF/DOCX analysis flow. After you accept the processing notice and press **Analyze resume**, the app uploads the document to the configured backend, which extracts text and sends it to the configured analysis provider. The backend does not store the uploaded file. The API and results UI show a summary, evidence-based strengths, improvements, and missing information. **Paste resume** runs local rule-based checks on the entered text; **Select a file locally** only demonstrates native PDF/DOCX selection and does not upload or analyze that selected file. See [architecture](docs/ARCHITECTURE.md), [API contract](docs/API.md), and [development notes](docs/DEVELOPMENT.md) for setup and limitations.
+>>>>>>> bf7d89571cc4492edd42705af50c5564a64c57d5
 
 ## Backend (optional during Flutter development)
 
-Install Node.js 22.9 or newer, then from `backend/` run:
+Install Node.js 22.9 or newer. In a PowerShell window, install dependencies and create the ignored local environment file:
 
 ```powershell
-npm ci
+Set-Location C:\Users\jaxon\OneDrive\Documents\GitHub\Airesume\backend
+npm install
+Copy-Item .env.example .env
+```
+
+Provide your own OpenAI API key to this PowerShell session without putting it in command history:
+
+```powershell
+$secureKey = Read-Host 'Enter your OpenAI API key' -AsSecureString
+$env:OPENAI_API_KEY = [System.Net.NetworkCredential]::new('', $secureKey).Password
+```
+
+Then start the backend and check its health from the same window:
+
+```powershell
+npm run check
 npm test
 npm start
 ```
 
-The service listens on port 3000 by default; set `$env:PORT = "3001"` before `npm start` to change it. The server reads a local `backend/.env` file if present. `backend/.env.example` documents the future server-side OpenAI setting, which is currently unused. Never commit a local `.env` or send a key to Flutter. No key is needed for the current health endpoint or placeholder route.
+In a second PowerShell window, check the health endpoint and launch Flutter on the running Android emulator:
+
+```powershell
+Invoke-RestMethod http://localhost:3000/health
+Set-Location C:\Users\jaxon\OneDrive\Documents\GitHub\Airesume
+flutter devices
+flutter run -d emulator-5554
+```
+
+The service listens on port 3000 by default; set `$env:PORT = "3001"` before `npm start` to change it. `npm start` loads `backend/.env` via Node's `--env-file-if-exists` support. You can either edit the ignored `.env` file to set `OPENAI_API_KEY` or set it in the launching PowerShell session as above. Flutter uses `http://10.0.2.2:3000` by default on Android emulator and `http://localhost:3000` on Windows desktop. Override with `--dart-define=API_BASE_URL=http://10.0.2.2:3000` when needed. For Flutter Web, allow its exact origin with `CORS_ALLOWED_ORIGINS` (for example `http://localhost:5000`) and start Chrome using `--web-port=5000`. Never commit a local `.env` or send a key to Flutter. No key is needed for `/health`.
+
+### Backend configuration troubleshooting
+
+- **The app says analysis is not configured:** replace the example placeholder with your own `OPENAI_API_KEY` in the same PowerShell session that starts Node, or in `backend/.env`; stop and restart `npm start` after changing it. The API returns an actionable `ANALYSIS_UNAVAILABLE` message without echoing the key. A successful `/health` response only confirms the server is listening; it does not check provider configuration.
+- **`npm start` reports `EADDRINUSE` on port 3000:** a backend is already listening. Stop that instance in the PowerShell window where it was started, then launch one instance with the key configured.
+- **The emulator cannot reach the backend:** leave `npm start` running on Windows, confirm `Invoke-RestMethod http://localhost:3000/health` succeeds on Windows, then confirm the app uses `http://10.0.2.2:3000` (the default). Do not use `localhost` as the emulator's host address.
+- **The key is configured but analysis still fails:** verify your API account can use the configured `OPENAI_MODEL` and that the key has API access/billing enabled. Provider errors are intentionally returned without secret values.
 
 ## Checks
 

@@ -9,10 +9,14 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
     "test": "node --test",
-    "check": "node --check src/server.js && node --check src/app.js && node --check src/schemas.js"
+    "check": "node --check src/server.js && node --check src/app.js && node --check src/schemas.js && node --check src/resume_text.js && node --check src/providers/resume_analyzer.js"
   },
   "dependencies": {
     "express": "^5.1.0",
+    "mammoth": "^1.10.0",
+    "multer": "^2.0.2",
+    "openai": "^6.49.0",
+    "pdf-parse": "^2.4.5",
     "zod": "^4.1.12"
   }
 }

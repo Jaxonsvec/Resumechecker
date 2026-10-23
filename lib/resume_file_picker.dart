@@ -13,8 +13,9 @@ class ResumeFilePicker {
     final file = await (selectFile ?? _openResumeFile)();
     if (file == null) return null;
 
-    final extension = file.name.split('.').last.toLowerCase();
-    if (!file.name.contains('.') || !supportedExtensions.contains(extension)) {
+    final name = _safeFileName(file.name);
+    final extension = name.split('.').last.toLowerCase();
+    if (!name.contains('.') || !supportedExtensions.contains(extension)) {
       throw const ResumeSelectionException('Choose a PDF or DOCX file.');
     }
 
@@ -30,8 +31,11 @@ class ResumeFilePicker {
       );
     }
 
-    return SelectedResumeFile(file: file, size: size);
+    return SelectedResumeFile(file: file, name: name, size: size);
   }
+
+  static String _safeFileName(String value) =>
+      value.split(RegExp(r'[/\\]')).last;
 
   static Future<XFile?> _openResumeFile() => openFile(
     acceptedTypeGroups: const [
@@ -52,9 +56,14 @@ class ResumeFilePicker {
 }
 
 class SelectedResumeFile {
-  const SelectedResumeFile({required this.file, required this.size});
+  const SelectedResumeFile({
+    required this.file,
+    required this.name,
+    required this.size,
+  });
 
   final XFile file;
+  final String name;
   final int size;
 }
 

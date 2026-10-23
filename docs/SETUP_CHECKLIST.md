@@ -31,25 +31,35 @@ Use this for a fresh Windows development machine. Leave items unchecked until yo
   ```
 
 - [ ] Run `flutter pub get` from the repository root.
-- [ ] If contributing to the backend, run `npm ci` from `backend/`.
+- [ ] If contributing to the backend on this branch, run `npm install` from `backend/` to resolve the new dependencies and refresh `package-lock.json`; once refreshed, use `npm ci` for subsequent clean installs.
 - [ ] Do not run broad dependency upgrades as part of routine setup. Keep `pubspec.lock` and `backend/package-lock.json` in sync with intentional dependency changes.
 
 ## 4. Environment variables and privacy
 
-- [ ] No environment variable or API key is needed to run the current Flutter screen or backend health route.
+- [ ] No environment variable or API key is needed to browse Flutter screens or call the backend health route. A server-side `OPENAI_API_KEY` is required for actual analysis.
 - [ ] The backend uses `PORT` (default `3000`). To use another port in PowerShell, set `$env:PORT = "3001"` before starting it.
-- [ ] `backend/.env.example` contains placeholder values. For future local provider work, copy it with `Copy-Item .env.example .env` inside `backend/`; replace placeholders only when authorized to use a real backend key.
-- [ ] Never put an OpenAI key in Flutter, `--dart-define`, source control, issue comments, or logs. The placeholder key is not used by the current server.
-- [ ] Do not use real resumes in tests or send any resume to a live provider. File selection and pasted-text local checks are implemented; file upload, extraction, and provider analysis are not.
+- [ ] `backend/.env.example` contains placeholder values. To use the provider, copy it with `Copy-Item .env.example .env` inside `backend/` and add a server-side key.
+- [ ] Never put an OpenAI key in Flutter, `--dart-define`, source control, issue comments, or logs.
+- [ ] Do not use real resumes in tests. The backend sends uploaded extracted text to the configured provider; review privacy and provider terms before using real resumes.
 
 ## 5. Run the app and optional API
 
 - [ ] From the repository root, run `flutter run` and select the running emulator/device. You can target a device with `flutter run -d <device-id>`.
+<<<<<<< HEAD
 - [ ] Confirm the Airesume home screen and workflow summary appear. Scroll normally and drag past the top/bottom edges; content should not stretch on Android.
 - [ ] Tap **Paste resume**, load the synthetic sample, and confirm **Check resume** opens basic feedback.
 - [ ] Tap **Upload resume**, then **Choose file**. Select a synthetic PDF/DOCX (up to 5 MiB) and confirm filename/size, replacement, removal, and cancellation work. Files are selected locally only; extraction and upload are not implemented.
+=======
+- [ ] Confirm the Airesume home screen and workflow summary appear.
+- [ ] Confirm **Paste resume** runs local rule-based checks and **Choose a resume** opens the connected upload flow.
+- [ ] Optional: **Select a file locally** opens a metadata-only file-selection preview; it does not upload or analyze that file.
+- [ ] Tap **Choose a resume** and select a PDF or DOCX up to 10 MiB. Confirm the filename and size appear, then try replacing and removing the selection.
+- [ ] Configure `API_BASE_URL` if the backend is not at the platform default. Android emulator uses `http://10.0.2.2:3000`; Windows uses `http://localhost:3000`.
+- [ ] Before real analysis, configure a server-side provider key and review the provider's privacy terms. The app requires processing acknowledgment before sending resume text.
+- [ ] Follow [the README backend setup](../README.md#backend-optional-during-flutter-development) to enter the key without putting it in command history. A healthy `/health` route does not validate the provider key.
+>>>>>>> bf7d89571cc4492edd42705af50c5564a64c57d5
 - [ ] Optional: from `backend/`, run `npm start`; verify `http://localhost:3000/health` returns `{"status":"ok"}`.
-- [ ] Optional: send valid JSON to `/api/v1/analyses` and confirm it returns HTTP 501. This route validates request shape but does not analyze or store resume text.
+- [ ] Optional: after dependency installation and verification, send one synthetic PDF/DOCX multipart upload to `/api/v1/analyses`; confirm it returns the documented structured result when a backend provider key is configured.
 
 ## 6. Test and build before sharing work
 
